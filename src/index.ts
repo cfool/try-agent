@@ -3,6 +3,8 @@ import * as readline from "node:readline/promises";
 import { GeminiClient } from "./gemini-client.js";
 import { getSystemPrompt } from "./system-prompt.js";
 import { Chat } from "./chat.js";
+import { ToolRegistry } from "./tool-registry.js";
+import { RunShellCommand } from "./tools/run-shell-command.js";
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
@@ -15,10 +17,14 @@ const client = new GeminiClient({
   model: "gemini-3-flash-preview",
 });
 
+const registry = new ToolRegistry();
+registry.register(new RunShellCommand({ timeoutMs: 30_000 }));
+
 // 切换提示词风格：修改这里的参数即可
 // 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer
 const systemPrompt = getSystemPrompt("personal-assistant");
-let chat = new Chat(client, systemPrompt);
+
+let chat = new Chat(client, systemPrompt, registry);
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -37,7 +43,7 @@ while (true) {
   }
 
   if (trimmed === "new") {
-    chat = new Chat(client, systemPrompt);
+    chat = new Chat(client, systemPrompt, registry);
     console.log("\n--- New chat started ---\n");
     continue;
   }
