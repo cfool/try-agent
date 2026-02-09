@@ -5,6 +5,10 @@ import { getSystemPrompt } from "./system-prompt.js";
 import { Chat } from "./chat.js";
 import { ToolRegistry } from "./tool-registry.js";
 import { RunShellCommand } from "./tools/run-shell-command.js";
+import { ReadFile } from "./tools/read-file.js";
+import { ReadFolder } from "./tools/read-folder.js";
+import { WriteFile } from "./tools/write-file.js";
+import { EditFile } from "./tools/edit-file.js";
 
 // Default to specified model, or fall back to the first registered one
 const preferredModel = process.env.MODEL;
@@ -29,6 +33,10 @@ try {
 
 const registry = new ToolRegistry();
 registry.register(new RunShellCommand({ timeoutMs: 30_000 }));
+registry.register(new ReadFile());
+registry.register(new ReadFolder());
+registry.register(new WriteFile());
+registry.register(new EditFile());
 
 // 切换提示词风格：修改这里的参数即可
 // 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer
