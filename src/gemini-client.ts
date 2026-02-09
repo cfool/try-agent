@@ -20,6 +20,11 @@ interface GeminiResponse {
   }[];
 }
 
+export interface MessageInput {
+  role: "user" | "model";
+  text: string;
+}
+
 export class GeminiClient {
   private apiKey: string;
   private model: string;
@@ -30,14 +35,19 @@ export class GeminiClient {
   }
 
   async sendMessage(
-    text: string,
+    messages: MessageInput[],
     systemInstruction?: string
   ): Promise<string> {
+    const contents: Content[] = messages.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text }],
+    }));
+
     const body: GeminiRequest = {
       system_instruction: {
         parts: [{ text: systemInstruction ?? "" }],
       },
-      contents: [{ role: "user", parts: [{ text }] }],
+      contents,
     };
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
