@@ -22,6 +22,7 @@ interface GeminiPart {
   text?: string;
   functionCall?: { name: string; args: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
+  thoughtSignature?: string;
 }
 
 interface GeminiResponse {
@@ -79,9 +80,13 @@ export class GeminiProvider implements ModelProvider {
         if (p.text !== undefined) {
           geminiParts.push({ text: p.text });
         } else if (p.functionCall) {
-          geminiParts.push({
+          const fcPart: GeminiPart = {
             functionCall: { name: p.functionCall.name, args: p.functionCall.args },
-          });
+          };
+          if (p.functionCall.thoughtSignature) {
+            fcPart.thoughtSignature = p.functionCall.thoughtSignature;
+          }
+          geminiParts.push(fcPart);
         } else if (p.functionResponse) {
           geminiParts.push({
             functionResponse: {
@@ -142,6 +147,7 @@ export class GeminiProvider implements ModelProvider {
         id: generateGeminiCallId(),
         name: fcPart.functionCall.name,
         args: fcPart.functionCall.args,
+        thoughtSignature: fcPart.thoughtSignature,
       };
     }
 

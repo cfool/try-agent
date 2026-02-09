@@ -22,26 +22,46 @@ export class Chat {
     this.history.push({ role: "user", parts: [{ text }] });
 
     const tools = this.getToolDeclarations();
-    const result = await this.client.sendMessage(this.history, {
-      systemInstruction: this.systemPrompt,
-      tools: tools.length > 0 ? tools : undefined,
-    });
+    const maxRounds = 100;
 
-    this.history.push({ role: "model", parts: [result] });
+    for (let i = 0; i < maxRounds; i++) {
+      const result = await this.client.sendMessage(this.history, {
+        systemInstruction: this.systemPrompt,
+        tools: tools.length > 0 ? tools : undefined,
+      });
 
-    if (result.functionCall) {
+      this.history.push({ role: "model", parts: [result] });
+
+      if (!result.functionCall) {
+        return result.text ?? "";
+      }
+
+      // Execute tool and feed result back to model
       const { id, name, args } = result.functionCall;
-      console.log(`\n[Tool Call] ${name}(${JSON.stringify(args)}) [id=${id}]`);
+      console.log(`\n[Tool Call] ${name}(${JSON.stringify(args)})`);
 
       const toolResult = await this.toolRegistry!.execute(name, args);
       const response = toolResult.error
         ? { error: toolResult.error }
-        : toolResult.result;
+        : (toolResult.result as Record<string, unknown>);
 
-      return JSON.stringify(response);
+      console.log(`[Tool Result] ${JSON.stringify(response)}\n`);
+
+      this.history.push({
+        role: "tool",
+        parts: [
+          {
+            functionResponse: {
+              id,
+              name,
+              response: response as Record<string, unknown>,
+            },
+          },
+        ],
+      });
     }
 
-    return result.text ?? "";
+    throw new Error("Max tool call rounds exceeded");
   }
 
   private getToolDeclarations(): ToolDefinition[] {

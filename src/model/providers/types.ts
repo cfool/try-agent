@@ -4,6 +4,8 @@ export interface FunctionCall {
   id: string;
   name: string;
   args: Record<string, unknown>;
+  /** Gemini-only: encrypted thought signature required by Gemini 3 models for multi-turn tool calling. */
+  thoughtSignature?: string;
 }
 
 export interface Part {
