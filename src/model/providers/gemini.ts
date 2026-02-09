@@ -1,4 +1,4 @@
-import type { ModelProvider } from "./types.js";
+import type { ModelProvider, Message } from "./types.js";
 
 interface Part {
   text: string;
@@ -32,13 +32,31 @@ export class GeminiProvider implements ModelProvider {
     this.model = options.model;
   }
 
-  async sendMessage(text: string, systemInstruction?: string): Promise<string> {
-    const body: GeminiRequest = {
+  /**
+   * 将内部 Message[] 格式转换为 Gemini API 所需的请求体。
+   * Gemini 的消息结构使用 parts 数组包裹文本，且 system 指令作为独立字段传递而非消息列表的一部分。
+   */
+  private toGeminiRequest(messages: Message[], systemInstruction?: string): GeminiRequest {
+    // Gemini 直接使用 "user" | "model" 作为 role，与内部格式一致，无需映射
+    const contents: Content[] = messages.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text }],
+    }));
+
+    return {
+      // system 指令通过独立的 system_instruction 字段传递，而非混入对话消息
       system_instruction: {
         parts: [{ text: systemInstruction ?? "" }],
       },
-      contents: [{ role: "user", parts: [{ text }] }],
+      contents,
     };
+  }
+
+  async sendMessage(
+    messages: Message[],
+    systemInstruction?: string
+  ): Promise<string> {
+    const body = this.toGeminiRequest(messages, systemInstruction);
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
