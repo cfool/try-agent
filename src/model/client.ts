@@ -1,7 +1,7 @@
 import { DeepSeekProvider } from "./providers/deepseek.js";
 import { GeminiProvider } from "./providers/gemini.js";
 import { TencentProvider } from "./providers/tencent.js";
-import type { Message, ModelProvider } from "./providers/types.js";
+import type { Message, ModelProvider, SendMessageOptions, SendMessageResult } from "./providers/types.js";
 import { ZhiPuProvider } from "./providers/zhipu.js";
 
 interface ModelConfig {
@@ -37,12 +37,12 @@ export class ModelClient {
     return this.providers.get(this.currentModel)!;
   }
 
-  async sendMessage(messages: Message[], systemInstruction?: string): Promise<string> {
+  async sendMessage(messages: Message[], options?: SendMessageOptions): Promise<SendMessageResult> {
     if (!this.currentModel || !this.providers.has(this.currentModel)) {
       throw new Error("No model registered.");
     }
     const provider = this.providers.get(this.currentModel)!.provider;
-    return provider.sendMessage(messages, systemInstruction);
+    return provider.sendMessage(messages, options);
   }
 }
 

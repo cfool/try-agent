@@ -1,9 +1,40 @@
+import { ToolDefinition } from "../../tool-registry";
+
+export interface FunctionCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+export interface Part {
+  text?: string;
+  functionCall?: FunctionCall;
+  functionResponse?: {
+    id: string;
+    name: string;
+    response: Record<string, unknown>;
+  };
+}
+
 export interface Message {
-  role: "user" | "model";
-  text: string;
+  role: "user" | "model" | "tool";
+  parts: Part[];
+}
+
+export interface SendMessageOptions {
+  systemInstruction?: string;
+  tools?: ToolDefinition[];
+}
+
+export interface SendMessageResult {
+  text?: string;
+  functionCall?: FunctionCall;
 }
 
 export interface ModelProvider {
   name: string;
-  sendMessage(messages: Message[], systemInstruction?: string): Promise<string>;
+  sendMessage(
+    messages: Message[],
+    options?: SendMessageOptions
+  ): Promise<SendMessageResult>;
 }
