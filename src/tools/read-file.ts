@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { Tool, ToolDefinition } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
 
 export class ReadFile implements Tool {
   definition: ToolDefinition = {
@@ -28,7 +28,20 @@ export class ReadFile implements Tool {
     },
   };
 
-  async execute(params: Record<string, unknown>): Promise<unknown> {
+  displayArgs(params: Record<string, unknown>): string {
+    const filePath = params.file_path as string;
+    const offset = params.offset as number | undefined;
+    const limit = params.limit as number | undefined;
+    const parts = [filePath];
+    if (offset !== undefined || limit !== undefined) {
+      const range = offset !== undefined ? `offset=${offset}` : "";
+      const lim = limit !== undefined ? `limit=${limit}` : "";
+      parts.push(`(${[range, lim].filter(Boolean).join(", ")})`);
+    }
+    return parts.join(" ");
+  }
+
+  async execute(params: Record<string, unknown>): Promise<ToolExecuteResult> {
     const filePath = params.file_path as string;
     const offset = (params.offset as number | undefined) ?? 1;
     const limit = params.limit as number | undefined;
@@ -46,12 +59,17 @@ export class ReadFile implements Tool {
       (line, i) => `${startIndex + i + 1}\t${line}`
     );
 
-    return {
+    const data = {
       filePath,
       totalLines: lines.length,
       fromLine: startIndex + 1,
       toLine: startIndex + sliced.length,
       content: numbered.join("\n"),
     };
+
+    const displayText =
+      `Read ${filePath} (lines ${data.fromLine}-${data.toLine} of ${data.totalLines})`;
+
+    return { data, displayText };
   }
 }

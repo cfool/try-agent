@@ -54,14 +54,18 @@ export class Chat {
 
       // Execute tool and feed result back to model
       const { id, name, args } = result.functionCall;
-      console.log(`\n[Tool Call] ${name}(${JSON.stringify(args)})`);
+      const displayArgs = this.toolRegistry!.formatArgs(name, args);
+      console.log(`\n[Tool Call] ${name}(${displayArgs})`);
 
       const toolResult = await this.toolRegistry!.execute(name, args);
       const response = toolResult.error
         ? { error: toolResult.error }
         : (toolResult.result as Record<string, unknown>);
 
-      console.log(`[Tool Result] ${JSON.stringify(response)}\n`);
+      const displayOutput = toolResult.error
+        ? `Error: ${toolResult.error}`
+        : toolResult.displayText ?? JSON.stringify(response);
+      console.log(`[Tool Result] ${displayOutput}\n`);
 
       this.history.push({
         role: "tool",

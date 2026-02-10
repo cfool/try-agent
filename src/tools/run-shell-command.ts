@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { Tool, ToolDefinition } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
 
 export class RunShellCommand implements Tool {
   private timeoutMs: number;
@@ -26,7 +26,11 @@ export class RunShellCommand implements Tool {
     this.maxBuffer = options?.maxBuffer ?? 1024 * 1024;
   }
 
-  execute(params: Record<string, unknown>): Promise<unknown> {
+  displayArgs(params: Record<string, unknown>): string {
+    return `$ ${params.command}`;
+  }
+
+  execute(params: Record<string, unknown>): Promise<ToolExecuteResult> {
     const command = params.command as string;
 
     return new Promise((resolve) => {
@@ -35,11 +39,17 @@ export class RunShellCommand implements Tool {
         { timeout: this.timeoutMs, maxBuffer: this.maxBuffer },
         (error, stdout, stderr) => {
           const exitCode = error?.code ?? 0;
-          resolve({
+          const data = {
             exitCode,
             stdout: stdout.toString(),
             stderr: stderr.toString(),
-          });
+          };
+
+          const lines: string[] = [`$ ${command}  (exit code: ${exitCode})`];
+          if (data.stdout) lines.push(data.stdout.trimEnd());
+          if (data.stderr) lines.push(`stderr: ${data.stderr.trimEnd()}`);
+
+          resolve({ data, displayText: lines.join("\n") });
         }
       );
     });

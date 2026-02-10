@@ -1,6 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { Tool, ToolDefinition } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
 
 export class ReadFolder implements Tool {
   definition: ToolDefinition = {
@@ -20,7 +20,11 @@ export class ReadFolder implements Tool {
     },
   };
 
-  async execute(params: Record<string, unknown>): Promise<unknown> {
+  displayArgs(params: Record<string, unknown>): string {
+    return params.folder_path as string;
+  }
+
+  async execute(params: Record<string, unknown>): Promise<ToolExecuteResult> {
     const folderPath = params.folder_path as string;
     const entries = await readdir(folderPath);
 
@@ -40,10 +44,17 @@ export class ReadFolder implements Tool {
       })
     );
 
-    return {
+    const data = {
       folderPath,
       totalEntries: items.length,
       entries: items,
     };
+
+    const listing = items
+      .map((e) => `  ${e.type === "directory" ? "📁" : "📄"} ${e.name}`)
+      .join("\n");
+    const displayText = `${folderPath} (${items.length} entries)\n${listing}`;
+
+    return { data, displayText };
   }
 }
