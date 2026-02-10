@@ -2,8 +2,9 @@ import {
   GeminiClient,
   Content,
   FunctionDeclaration,
+  GeminiSchema,
 } from "./gemini-client.js";
-import { ToolRegistry, ToolDefinition } from "./tool-registry.js";
+import { ToolRegistry, ToolDefinition, ToolParameter } from "./tool-registry.js";
 import { getProjectContext, formatProjectContext } from "./project-context.js";
 import { ChatCompressService, CompressionStatus } from "./chat-compress-service.js";
 
@@ -95,6 +96,22 @@ export class Chat {
     throw new Error("Max tool call rounds exceeded");
   }
 
+  private toGeminiSchema(param: ToolParameter): GeminiSchema {
+    const schema: GeminiSchema = {
+      type: param.type,
+      description: param.description,
+    };
+    if (param.enum) schema.enum = param.enum;
+    if (param.items) schema.items = this.toGeminiSchema(param.items);
+    if (param.properties) {
+      schema.properties = Object.fromEntries(
+        Object.entries(param.properties).map(([k, v]) => [k, this.toGeminiSchema(v)])
+      );
+    }
+    if (param.required) schema.required = param.required;
+    return schema;
+  }
+
   private getToolDeclarations(): FunctionDeclaration[] {
     if (!this.toolRegistry) return [];
 
@@ -106,11 +123,7 @@ export class Chat {
         properties: Object.fromEntries(
           Object.entries(def.parameters).map(([key, param]) => [
             key,
-            {
-              type: param.type,
-              description: param.description,
-              ...(param.enum ? { enum: param.enum } : {}),
-            },
+            this.toGeminiSchema(param),
           ])
         ),
         required: def.required,

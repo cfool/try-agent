@@ -12,15 +12,21 @@ export interface Content {
   parts: Part[];
 }
 
+export interface GeminiSchema {
+  type: string;
+  description?: string;
+  enum?: string[];
+  items?: GeminiSchema;
+  properties?: Record<string, GeminiSchema>;
+  required?: string[];
+}
+
 export interface FunctionDeclaration {
   name: string;
   description: string;
   parameters: {
     type: "object";
-    properties: Record<
-      string,
-      { type: string; description: string; enum?: string[] }
-    >;
+    properties: Record<string, GeminiSchema>;
     required?: string[];
   };
 }
@@ -69,6 +75,7 @@ export class GeminiClient {
     };
 
     if (options?.tools && options.tools.length > 0) {
+      // console.log("tools", JSON.stringify(options.tools));
       body.tools = [{ function_declarations: options.tools }];
     }
 

@@ -9,6 +9,7 @@ import { ReadFile } from "./tools/read-file.js";
 import { ReadFolder } from "./tools/read-folder.js";
 import { WriteFile } from "./tools/write-file.js";
 import { EditFile } from "./tools/edit-file.js";
+import { McpClientManager } from "./mcp-client.js";
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
@@ -28,6 +29,10 @@ registry.register(new ReadFolder());
 registry.register(new WriteFile());
 registry.register(new EditFile());
 
+const mcpManager = new McpClientManager();
+await mcpManager.connect();
+mcpManager.registerTools(registry);
+
 // 切换提示词风格：修改这里的参数即可
 // 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer | gemini-cli
 const systemPrompt = getSystemPrompt("gemini-cli");
@@ -41,11 +46,17 @@ const rl = readline.createInterface({
 
 console.log("Gemini Chat (type 'exit' to quit, 'new' to start a new chat)\n");
 
+process.on("SIGINT", async () => {
+  await mcpManager.close();
+  process.exit(0);
+});
+
 while (true) {
   const input = await rl.question("You: ");
   const trimmed = input.trim().toLowerCase();
 
   if (trimmed === "exit") {
+    await mcpManager.close();
     rl.close();
     break;
   }
