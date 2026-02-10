@@ -3,7 +3,7 @@ import { Tool, ToolDefinition } from "../tool-registry.js";
 
 export class EditFile implements Tool {
   definition: ToolDefinition = {
-    name: "edit_file",
+    name: "replace",
     description:
       "Edit a file by replacing occurrences of a string. " +
       "Finds old_string in the file and replaces it with new_string. " +
