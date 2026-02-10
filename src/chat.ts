@@ -1,6 +1,7 @@
 import { ModelClient } from "./model/client.js";
 import type { Message } from "./model/providers/types.js";
 import { ToolRegistry, ToolDefinition } from "./tool-registry.js";
+import { getProjectContext, formatProjectContext } from "./project-context.js";
 
 export class Chat {
   private history: Message[] = [];
@@ -18,6 +19,19 @@ export class Chat {
     this.toolRegistry = toolRegistry;
   }
 
+  /**
+   * 实时获取项目信息并构建带上下文的消息列表。
+   * 每轮对话都会重新获取，确保时间戳等信息是最新的。
+   */
+  private buildMessages(): Message[] {
+    const projectContext = formatProjectContext(getProjectContext());
+    return [
+      { role: "user", parts: [{ text: projectContext }] },
+      { role: "model", parts: [{ text: "Understood. I have the project context." }] },
+      ...this.history,
+    ];
+  }
+
   async send(text: string): Promise<string> {
     this.history.push({ role: "user", parts: [{ text }] });
 
@@ -25,7 +39,9 @@ export class Chat {
     const maxRounds = 100;
 
     for (let i = 0; i < maxRounds; i++) {
-      const result = await this.client.sendMessage(this.history, {
+      const messages = this.buildMessages();
+
+      const result = await this.client.sendMessage(messages, {
         systemInstruction: this.systemPrompt,
         tools: tools.length > 0 ? tools : undefined,
       });
