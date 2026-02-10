@@ -1,6 +1,6 @@
 # 第 4 阶段：Agent Loop (ReAct)
 
-**Commit:** `3fe814c - feat: implement multi-turn tool calling loop`
+**Branch:** `04-loop`
 
 ## 问题发现
 
