@@ -25,6 +25,31 @@ Agent C ─┘   (标准接口)      └─ 数据库 MCP Server
 
 **M + N 套代码就够了。** 每个 Agent 只需实现 MCP Client，每个工具只需实现 MCP Server。
 
+## MCP 的核心能力
+
+MCP 不仅仅是关于工具 (Tools)，它实际上定义了三种核心原语，让 Agent 能够更丰富地与外部世界交互：
+
+1.  **Tools (工具)**：
+    *   **定义**：Agent 可以调用的可执行函数。
+    *   **作用**：让模型**执行操作**或进行计算。
+    *   **举例**：`git_commit` (提交代码), `create_issue` (创建工单), `calculator` (计算器)。
+
+2.  **Resources (资源)**：
+    *   **定义**：Server 暴露给 Agent 的只读数据，类似于文件系统中的文件。
+    *   **作用**：让模型**读取上下文**。Agent 可以像读文件一样读取数据库记录、API 响应或日志，而不需要调用工具去"查询"它们。
+    *   **举例**：
+        *   数据库 Server 暴露资源 `postgres://db/users/schema`，Agent 读取即可获得表结构。
+        *   日志 Server 暴露资源 `logs://app/latest-error`，Agent 读取即可获得最新的报错堆栈。
+
+3.  **Prompts (提示词)**：
+    *   **定义**：Server 提供的预定义 Prompt 模板。
+    *   **作用**：复用高质量的指令。Server 可以将特定领域的最佳实践封装在 Prompt 中。
+    *   **举例**：
+        *   安全审计 Server 提供 `audit_security` Prompt，包含完整的安全检查清单。
+        *   翻译 Server 提供 `translate_technical` Prompt，包含特定术语对照表。
+
+通过这三种能力，MCP Server 变成了一个全能的上下文和能力提供者，而不仅仅是工具箱。
+
 ## MCP 架构
 
 MCP 采用三层架构：
