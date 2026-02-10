@@ -1,10 +1,6 @@
 # 第 4.5 阶段：工程化完善 (Refinement)
 
-**Commit 记录：**
-- `b11c325` - feat: add file system tools (read/write/edit file, read folder)
-- `75eab07` - feat: inject project context into chat messages
-- `4ea5782` - feat: enhance tool execution display with user-friendly text
-- `4756885` - chore: switch to gemini-cli system prompt and update model
+**Branch:** `04b-refine`
 
 在完成了第四阶段的 Agent Loop 后，我们已经拥有了一个能自主运行的 Agent。但直接拿它来干活，你会发现它还像个\"刚出生的婴儿\"：对环境一无所知、干活笨手笨脚、说话（输出）也让人看不懂。
 
