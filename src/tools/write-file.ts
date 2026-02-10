@@ -1,6 +1,6 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { Tool, ToolDefinition } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
 
 export class WriteFile implements Tool {
   definition: ToolDefinition = {
@@ -22,17 +22,29 @@ export class WriteFile implements Tool {
     required: ["file_path", "content"],
   };
 
-  async execute(params: Record<string, unknown>): Promise<unknown> {
+  displayArgs(params: Record<string, unknown>): string {
+    const filePath = params.file_path as string;
+    const content = params.content as string;
+    const bytes = Buffer.byteLength(content, "utf-8");
+    return `${filePath} (${bytes} bytes)`;
+  }
+
+  async execute(params: Record<string, unknown>): Promise<ToolExecuteResult> {
     const filePath = params.file_path as string;
     const content = params.content as string;
 
     await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, content, "utf-8");
 
-    return {
+    const bytesWritten = Buffer.byteLength(content, "utf-8");
+    const data = {
       filePath,
-      bytesWritten: Buffer.byteLength(content, "utf-8"),
+      bytesWritten,
       message: `Successfully wrote to ${filePath}`,
     };
+
+    const displayText = `Wrote ${bytesWritten} bytes to ${filePath}`;
+
+    return { data, displayText };
   }
 }
