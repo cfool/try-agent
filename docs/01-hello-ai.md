@@ -1,6 +1,6 @@
 # 第 1 阶段：让 AI 开口说话 (Hello AI)
 
-**Commit:** `7a30857 - Initial project setup with Gemini chat CLI`
+**Branch:** `01-hello`
 
 就干了一件事——调 API：
 

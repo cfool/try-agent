@@ -1,6 +1,6 @@
 # 第 2 阶段：让 AI 记住上下文 (Memory)
 
-**Commit:** `9435a48 - Add multi-turn conversation support with chat history management`
+**Branch:** `02-memory`
 
 ## 问题发现
 
