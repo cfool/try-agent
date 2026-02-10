@@ -1,6 +1,6 @@
 # 第 3 阶段：给 AI 一双手 (Tools)
 
-**Commit:** `28b0585 - feat: add tool calling support and run_shell_command tool`
+**Branch:** `03-tools`
 
 ## 问题发现
 
