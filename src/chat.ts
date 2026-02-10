@@ -2,12 +2,14 @@ import { ModelClient } from "./model/client.js";
 import type { Message } from "./model/providers/types.js";
 import { ToolRegistry, ToolDefinition } from "./tool-registry.js";
 import { getProjectContext, formatProjectContext } from "./project-context.js";
+import { ChatCompressService, CompressionStatus } from "./context/chat-compress-service.js";
 
 export class Chat {
   private history: Message[] = [];
   private client: ModelClient;
   private systemPrompt: string;
   private toolRegistry?: ToolRegistry;
+  private compressService: ChatCompressService;
 
   constructor(
     client: ModelClient,
@@ -17,6 +19,7 @@ export class Chat {
     this.client = client;
     this.systemPrompt = systemPrompt;
     this.toolRegistry = toolRegistry;
+    this.compressService = new ChatCompressService(client);
   }
 
   /**
@@ -33,6 +36,12 @@ export class Chat {
   }
 
   async send(text: string): Promise<string> {
+    // 压缩检测：超出阈值时替换 history
+    const compression = await this.compressService.compressIfNeeded(this.history);
+    if (compression.status === CompressionStatus.COMPRESSED && compression.newHistory) {
+      this.history = compression.newHistory;
+    }
+
     this.history.push({ role: "user", parts: [{ text }] });
 
     const tools = this.getToolDeclarations();
