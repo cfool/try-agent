@@ -39,8 +39,8 @@ registry.register(new WriteFile());
 registry.register(new EditFile());
 
 // 切换提示词风格：修改这里的参数即可
-// 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer
-const systemPrompt = getSystemPrompt("personal-assistant");
+// 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer | gemini-cli
+const systemPrompt = getSystemPrompt("gemini-cli");
 
 let chat = new Chat(client, systemPrompt, registry);
 
