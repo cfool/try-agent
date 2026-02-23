@@ -10,6 +10,9 @@ import { ReadFolder } from "./tools/read-folder.js";
 import { WriteFile } from "./tools/write-file.js";
 import { EditFile } from "./tools/edit-file.js";
 import { McpClientManager } from "./mcp-client.js";
+import { SubAgentRegistry } from "./subagents/sub-agent-registry.js";
+import { SubAgentTool } from "./tools/sub-agent-tool.js";
+import { createCodebaseInvestigator } from "./subagents/codebase-investigator.js";
 
 // Default to specified model, or fall back to the first registered one
 const preferredModel = process.env.MODEL;
@@ -43,6 +46,14 @@ const mcpManager = new McpClientManager();
 await mcpManager.connect();
 mcpManager.registerTools(registry);
 
+// SubAgent: register built-in agents and load user-defined ones from directory
+const subAgentRegistry = new SubAgentRegistry();
+subAgentRegistry.registerBuiltin(createCodebaseInvestigator());
+await subAgentRegistry.loadFromDirectory();
+if (!subAgentRegistry.isEmpty) {
+  registry.register(new SubAgentTool(subAgentRegistry, registry, client));
+}
+
 // 切换提示词风格：修改这里的参数即可
 // 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer | gemini-cli
 const systemPrompt = getSystemPrompt("gemini-cli");
@@ -54,12 +65,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-console.log("AI Chat (type '/exit' to quit, '/new' to start a new chat, '/use <model>' to switch)\n");
-
-process.on("SIGINT", async () => {
-  await mcpManager.close();
-  process.exit(0);
-});
+console.log("AI Chat (type '/exit' to quit, '/new' to start a new chat, '/use <model>' to switch, '/agents' to list agents)\n");
 
 while (true) {
   const input = await rl.question("You: ");
@@ -78,6 +84,27 @@ while (true) {
   }
 
   if (!input.trim()) continue;
+
+  // Handle /agents command to list registered sub-agents
+  if (trimmed === "/agents") {
+    const agents = subAgentRegistry.list();
+    if (agents.length === 0) {
+      console.log("\nNo sub-agents registered.\n");
+    } else {
+      console.log(`\n📋 Registered Sub-Agents (${agents.length}):\n`);
+      for (const agent of agents) {
+        const tools = agent.tools ? agent.tools.join(", ") : "all";
+        const model = agent.model ?? "default";
+        const maxTurns = agent.maxTurns ?? "default";
+        console.log(`  • ${agent.name}`);
+        console.log(`    Description: ${agent.description}`);
+        console.log(`    Tools: ${tools}`);
+        console.log(`    Model: ${model} | Max Turns: ${maxTurns}`);
+        console.log();
+      }
+    }
+    continue;
+  }
 
   // Handle /use command to switch models
   const useMatch = input.trim().match(/^\/use\s+(\S+)$/);

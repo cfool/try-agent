@@ -4,22 +4,30 @@ import { ToolRegistry, ToolDefinition } from "./tool-registry.js";
 import { getProjectContext, formatProjectContext } from "./project-context.js";
 import { ChatCompressService, CompressionStatus } from "./context/chat-compress-service.js";
 
+export interface ChatOptions {
+  /** 最大工具调用轮数（默认 100） */
+  maxRounds?: number;
+}
+
 export class Chat {
   private history: Message[] = [];
   private client: ModelClient;
   private systemPrompt: string;
   private toolRegistry?: ToolRegistry;
   private compressService: ChatCompressService;
+  private maxRounds: number;
 
   constructor(
     client: ModelClient,
     systemPrompt: string,
-    toolRegistry?: ToolRegistry
+    toolRegistry?: ToolRegistry,
+    options?: ChatOptions
   ) {
     this.client = client;
     this.systemPrompt = systemPrompt;
     this.toolRegistry = toolRegistry;
     this.compressService = new ChatCompressService(client);
+    this.maxRounds = options?.maxRounds ?? 100;
   }
 
   /**
@@ -45,9 +53,8 @@ export class Chat {
     this.history.push({ role: "user", parts: [{ text }] });
 
     const tools = this.getToolDeclarations();
-    const maxRounds = 100;
 
-    for (let i = 0; i < maxRounds; i++) {
+    for (let i = 0; i < this.maxRounds; i++) {
       const messages = this.buildMessages();
 
       const result = await this.client.sendMessage(messages, {
