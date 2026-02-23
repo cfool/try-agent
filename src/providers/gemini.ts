@@ -1,3 +1,5 @@
+import type { ModelProvider } from "./types.js";
+
 interface Part {
   text: string;
 }
@@ -20,19 +22,17 @@ interface GeminiResponse {
   }[];
 }
 
-export class GeminiClient {
+export class GeminiProvider implements ModelProvider {
+  name = "gemini";
   private apiKey: string;
   private model: string;
 
-  constructor(options: { apiKey: string; model: string }) {
+  constructor(options: { apiKey: string; model?: string }) {
     this.apiKey = options.apiKey;
-    this.model = options.model;
+    this.model = options.model ?? "gemini-3-flash-preview";
   }
 
-  async sendMessage(
-    text: string,
-    systemInstruction?: string
-  ): Promise<string> {
+  async sendMessage(text: string, systemInstruction?: string): Promise<string> {
     const body: GeminiRequest = {
       system_instruction: {
         parts: [{ text: systemInstruction ?? "" }],
