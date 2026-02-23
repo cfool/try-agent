@@ -13,6 +13,9 @@ import { McpClientManager } from "./mcp-client.js";
 import { SubAgentRegistry } from "./subagents/sub-agent-registry.js";
 import { SubAgentTool } from "./tools/sub-agent-tool.js";
 import { createCodebaseInvestigator } from "./subagents/codebase-investigator.js";
+import { SkillRegistry } from "./skills/skill-registry.js";
+import { SkillLoader } from "./skills/skill-loader.js";
+import { SkillTool } from "./tools/skill-tool.js";
 
 // Default to specified model, or fall back to the first registered one
 const preferredModel = process.env.MODEL;
@@ -54,18 +57,35 @@ if (!subAgentRegistry.isEmpty) {
   registry.register(new SubAgentTool(subAgentRegistry, registry, client));
 }
 
+// Skill: load user-defined skills from .agent/skills/ directory
+const skillRegistry = new SkillRegistry();
+await skillRegistry.loadFromDirectory();
+const skillLoader = new SkillLoader();
+
+// Register SkillTool if there are LLM-invocable skills
+const llmSkills = skillRegistry.list();
+if (llmSkills.length > 0) {
+  registry.register(new SkillTool(skillRegistry, skillLoader));
+}
+
 // 切换提示词风格：修改这里的参数即可
 // 可选: personal-assistant | sarcastic-friend | coding-mentor | anime-girl | strict-engineer | gemini-cli
 const systemPrompt = getSystemPrompt("gemini-cli");
 
-let chat = new Chat(client, systemPrompt, registry);
+// Inject skill metadata into system prompt so LLM knows available skills
+const skillMetadata = skillRegistry.generateMetadataXml();
+const fullSystemPrompt = skillMetadata
+  ? `${systemPrompt}\n\n${skillMetadata}`
+  : systemPrompt;
+
+let chat = new Chat(client, fullSystemPrompt, registry);
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-console.log("AI Chat (type '/exit' to quit, '/new' to start a new chat, '/use <model>' to switch, '/agents' to list agents)\n");
+console.log("AI Chat (type '/exit' to quit, '/new' to start a new chat, '/use <model>' to switch, '/agents' to list agents, '/skills' to list skills)\n");
 
 while (true) {
   const input = await rl.question("You: ");
@@ -78,7 +98,7 @@ while (true) {
   }
 
   if (trimmed === "/new") {
-    chat = new Chat(client, systemPrompt, registry);
+    chat = new Chat(client, fullSystemPrompt, registry);
     console.log("\n--- New chat started ---\n");
     continue;
   }
@@ -106,6 +126,22 @@ while (true) {
     continue;
   }
 
+  // Handle /skills command to list registered skills
+  if (trimmed === "/skills") {
+    const skills = skillRegistry.list();
+    if (skills.length === 0) {
+      console.log("\nNo skills registered.\n");
+    } else {
+      console.log(`\nRegistered Skills (${skills.length}):\n`);
+      for (const skill of skills) {
+        console.log(`  ${skill.trigger} — ${skill.name}`);
+        console.log(`    Description: ${skill.description}`);
+        console.log();
+      }
+    }
+    continue;
+  }
+
   // Handle /use command to switch models
   const useMatch = input.trim().match(/^\/use\s+(\S+)$/);
   if (useMatch) {
@@ -114,6 +150,20 @@ while (true) {
       console.log(`\nSwitched to Model: ${client.getActiveModel()?.alias}\n`);
     } catch (err) {
       console.error(`\n${err}\n`);
+    }
+    continue;
+  }
+
+  // Check if input matches a skill trigger
+  const skillMatch = skillRegistry.match(input.trim());
+  if (skillMatch) {
+    const injectedPrompt = skillLoader.load(skillMatch.skill, skillMatch.args);
+    // Send through main chat — the model reads the skill prompt and acts on it
+    try {
+      const reply = await chat.send(injectedPrompt);
+      console.log(`\n${client.getActiveModel()?.alias}: ${reply}\n`);
+    } catch (err) {
+      console.error(`\nError: ${err}\n`);
     }
     continue;
   }
