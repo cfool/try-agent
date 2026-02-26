@@ -15,11 +15,25 @@ export type MessageType =
   | "error"
   | "system";
 
+export interface ToolCallData {
+  toolName: string;
+  args: string;
+  rawArgs?: Record<string, unknown>;
+}
+
+export interface ToolResultData {
+  toolName: string;
+  output: string;
+  isError: boolean;
+}
+
 export interface DisplayMessage {
   id: number;
   type: MessageType;
   text: string;
   timestamp: Date;
+  toolCall?: ToolCallData;
+  toolResult?: ToolResultData;
 }
 
 export interface SlashCommand {

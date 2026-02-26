@@ -105,10 +105,11 @@ export class SubAgentTool implements Tool {
     }
 
     try {
-      // 创建独立 Chat 实例（共享事件总线，tool_call / tool_result 会出现在 TUI 中）
+      // 创建独立 Chat 实例和独立事件总线，SubAgent 内部的 tool_call / tool_result 不应发送到主 Agent 的事件总线
+      const subEvents = new ChatEventBus();
       const subChat = new Chat(this.client, agentDef.systemPrompt, subRegistry, {
         maxRounds: agentDef.maxTurns,
-        events: this.events,
+        events: subEvents,
       });
 
       const result = await subChat.send(task);

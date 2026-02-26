@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 export interface ToolCallEvent {
   name: string;
   args: string;
+  rawArgs?: Record<string, unknown>;
 }
 
 export interface ToolResultEvent {

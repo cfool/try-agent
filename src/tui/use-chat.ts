@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Chat } from "../chat.js";
-import type { AppContext, DisplayMessage, MessageType } from "./types.js";
+import type { ToolCallEvent, ToolResultEvent } from "../chat-events.js";
+import type { AppContext, DisplayMessage, MessageType, ToolCallData, ToolResultData } from "./types.js";
 
 interface UseChatReturn {
   messages: DisplayMessage[];
@@ -27,21 +28,28 @@ export function useChat(ctx: AppContext): UseChatReturn {
     })
   );
 
-  const addMessage = useCallback((type: MessageType, text: string) => {
-    setMessages((prev) => [
-      ...prev,
-      { id: nextId++, type, text, timestamp: new Date() },
-    ]);
-  }, []);
+  const addMessage = useCallback(
+    (type: MessageType, text: string, extra?: { toolCall?: ToolCallData; toolResult?: ToolResultData }) => {
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId++, type, text, timestamp: new Date(), ...extra },
+      ]);
+    },
+    []
+  );
 
   useEffect(() => {
     const events = ctx.events;
 
-    const onToolCall = (e: { name: string; args: string }) => {
-      addMessage("tool_call", `${e.name}(${e.args})`);
+    const onToolCall = (e: ToolCallEvent) => {
+      addMessage("tool_call", `${e.name}(${e.args})`, {
+        toolCall: { toolName: e.name, args: e.args, rawArgs: e.rawArgs },
+      });
     };
-    const onToolResult = (e: { name: string; output: string; isError: boolean }) => {
-      addMessage(e.isError ? "error" : "tool_result", e.output);
+    const onToolResult = (e: ToolResultEvent) => {
+      addMessage(e.isError ? "error" : "tool_result", e.output, {
+        toolResult: { toolName: e.name, output: e.output, isError: e.isError },
+      });
     };
     const onCompressed = (e: { from: number; to: number }) => {
       addMessage("system", `[Context] Compressed: ${e.from} → ${e.to} tokens`);

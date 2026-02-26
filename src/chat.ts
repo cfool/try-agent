@@ -76,7 +76,7 @@ export class Chat {
       // Execute tool and feed result back to model
       const { id, name, args } = result.functionCall;
       const displayArgs = this.toolRegistry!.formatArgs(name, args);
-      this.events.emit("tool_call", { name, args: displayArgs });
+      this.events.emit("tool_call", { name, args: displayArgs, rawArgs: args as Record<string, unknown> });
 
       const toolResult = await this.toolRegistry!.execute(name, args);
       const response = toolResult.error
