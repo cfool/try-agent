@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
-import TextInput from "ink-text-input";
 import type { SlashCommandRegistry } from "../slash-commands.js";
 import { useCommandList } from "../use-command-list.js";
 
@@ -30,26 +29,25 @@ export const InputBox: React.FC<InputBoxProps> = ({
     ? Math.min(selectedIndex, candidates.length - 1)
     : 0;
 
-  // Handle arrow keys and Tab for completion navigation
+  // Handle all keyboard input: text entry, arrow keys, Tab completion, Enter submit
   useInput(
     (input, key) => {
-      if (!showMenu) return;
-
-      if (key.downArrow) {
+      // Arrow keys for completion navigation
+      if (showMenu && key.downArrow) {
         setSelectedIndex((prev) =>
           prev < candidates.length - 1 ? prev + 1 : 0
         );
         return;
       }
 
-      if (key.upArrow) {
+      if (showMenu && key.upArrow) {
         setSelectedIndex((prev) =>
           prev > 0 ? prev - 1 : candidates.length - 1
         );
         return;
       }
 
-      if (key.tab) {
+      if (showMenu && key.tab) {
         const cmd = candidates[clampedIndex];
         if (cmd) {
           const filled = cmd.hasArg ? cmd.name + " " : cmd.name;
@@ -58,60 +56,78 @@ export const InputBox: React.FC<InputBoxProps> = ({
         }
         return;
       }
+
+      // Submit on Enter
+      if (key.return) {
+        if (showMenu && candidates.length > 0) {
+          const selected = candidates[clampedIndex];
+          if (
+            selected &&
+            selected.name.toLowerCase() !== value.toLowerCase() &&
+            selected.name.toLowerCase().startsWith(value.toLowerCase())
+          ) {
+            const filled = selected.hasArg ? selected.name + " " : selected.name;
+            onChange(filled);
+            setSelectedIndex(0);
+            return;
+          }
+        }
+        onSubmit(value);
+        return;
+      }
+
+      // Backspace / Delete
+      if (key.backspace || key.delete) {
+        const next = value.slice(0, -1);
+        onChange(next);
+        setSelectedIndex(0);
+        return;
+      }
+
+      // Ignore other control keys
+      if (
+        key.upArrow ||
+        key.downArrow ||
+        key.leftArrow ||
+        key.rightArrow ||
+        key.tab ||
+        key.escape ||
+        key.ctrl ||
+        key.meta
+      ) {
+        return;
+      }
+
+      // Normal character input
+      if (input) {
+        onChange(value + input);
+        setSelectedIndex(0);
+      }
     },
     { isActive: !disabled }
   );
 
-  const handleChange = useCallback(
-    (v: string) => {
-      onChange(v);
-      setSelectedIndex(0);
-    },
-    [onChange]
-  );
-
-  const handleSubmit = useCallback(
-    (v: string) => {
-      if (showMenu && candidates.length > 0) {
-        const selected = candidates[clampedIndex];
-        if (
-          selected &&
-          selected.name.toLowerCase() !== v.toLowerCase() &&
-          selected.name.toLowerCase().startsWith(v.toLowerCase())
-        ) {
-          const filled = selected.hasArg ? selected.name + " " : selected.name;
-          onChange(filled);
-          setSelectedIndex(0);
-          return;
-        }
-      }
-      onSubmit(v);
-    },
-    [showMenu, candidates, clampedIndex, onChange, onSubmit]
-  );
-
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" marginTop={1}>
       {/* Input row */}
-      <Box borderStyle="single" paddingX={1}>
+      <Box borderStyle="single" borderLeft={false} borderRight={false}>
         <Text bold color="green">
-          {"You: "}
+          {"> "}
         </Text>
         {disabled ? (
           <Text dimColor>Working...</Text>
         ) : (
-          <TextInput
-            value={value}
-            onChange={handleChange}
-            onSubmit={handleSubmit}
-            placeholder="Type a message..."
-          />
+          <Text backgroundColor="#333333">
+            {value}
+            <Text backgroundColor="white">{" "}</Text>
+            {!value && <Text dimColor>Type a message...</Text>}
+          </Text>
         )}
       </Box>
 
       {/* Completion dropdown — rendered below the input box */}
       {showMenu && (
-        <Box flexDirection="column" paddingX={2}>
+        <Box flexDirection="column">
           {candidates.map((cmd, i) => {
             const isSelected = i === clampedIndex;
             return (

@@ -53,7 +53,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   }
 
   return (
-    <Box flexDirection="column" flexGrow={1} paddingX={1}>
+    <Box flexDirection="column" flexGrow={1} gap={1}>
       {elements}
     </Box>
   );

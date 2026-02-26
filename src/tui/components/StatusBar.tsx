@@ -8,7 +8,7 @@ interface StatusBarProps {
 
 export const StatusBar: React.FC<StatusBarProps> = ({ modelName, loading }) => {
   return (
-    <Box borderStyle="single" paddingX={1} justifyContent="space-between">
+    <Box borderStyle="single" paddingX={1} marginBottom={1} justifyContent="space-between">
       <Text bold color="cyan">
         {modelName}
       </Text>

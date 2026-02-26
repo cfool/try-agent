@@ -1,30 +1,42 @@
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useStdout } from "ink";
 import type { DisplayMessage } from "../types.js";
+import { MarkdownDisplay } from "./markdown/MarkdownDisplay.js";
 
 interface MessageProps {
   message: DisplayMessage;
+  /** True while the model is still generating this message */
+  isPending?: boolean;
 }
 
-export const Message: React.FC<MessageProps> = ({ message }) => {
+export const Message: React.FC<MessageProps> = ({ message, isPending = false }) => {
+  const { stdout } = useStdout();
+  const terminalWidth = stdout?.columns ?? 80;
+
   switch (message.type) {
     case "user":
       return (
         <Box>
           <Text bold color="green">
-            You:{" "}
+            {"> "}
           </Text>
-          <Text>{message.text}</Text>
+          <Text backgroundColor="#333333">{message.text}</Text>
         </Box>
       );
 
     case "assistant":
       return (
-        <Box>
+        <Box flexDirection="row">
           <Text bold color="blue">
-            AI:{" "}
+            {"● "}
           </Text>
-          <Text>{message.text}</Text>
+          <Box flexDirection="column">
+            <MarkdownDisplay
+              text={message.text}
+              isPending={isPending}
+              terminalWidth={terminalWidth - 2}
+            />
+          </Box>
         </Box>
       );
 
