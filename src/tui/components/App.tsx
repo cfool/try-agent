@@ -3,6 +3,7 @@ import { Box, useApp } from "ink";
 import { StatusBar } from "./StatusBar.js";
 import { MessageList } from "./MessageList.js";
 import { InputBox } from "./InputBox.js";
+import { WelcomeBox } from "./WelcomeBox.js";
 import { useChat } from "../use-chat.js";
 import type { AppContext } from "../types.js";
 
@@ -112,7 +113,7 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
 
   return (
     <Box flexDirection="column" height="100%">
-      <StatusBar modelName={modelName} loading={loading} />
+      <WelcomeBox />
       <MessageList messages={messages} />
       <InputBox
         value={input}
@@ -121,6 +122,7 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
         disabled={loading}
         commands={ctx.commands}
       />
+      <StatusBar modelName={modelName} loading={loading} />
     </Box>
   );
 };

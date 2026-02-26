@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Text } from "ink";
 
 interface StatusBarProps {
@@ -7,18 +7,46 @@ interface StatusBarProps {
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({ modelName, loading }) => {
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => {
+        setElapsed((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setElapsed(0);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [loading]);
+
   return (
-    <Box borderStyle="single" paddingX={1} marginBottom={1} justifyContent="space-between">
+    <Box paddingX={1}>
       <Text bold color="cyan">
         {modelName}
       </Text>
-      <Box>
-        {loading ? (
-          <Text color="yellow">Working...</Text>
-        ) : (
-          <Text dimColor>/exit /new /use /agents /skills</Text>
-        )}
-      </Box>
+      {loading && (
+        <>
+          <Text> </Text>
+          <Text color="yellow">
+            Working...{" "}
+            {elapsed >= 60
+              ? `${Math.floor(elapsed / 60)}m${elapsed % 60}s`
+              : `${elapsed}s`}
+          </Text>
+        </>
+      )}
     </Box>
   );
 };
