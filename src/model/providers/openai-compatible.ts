@@ -4,6 +4,7 @@ import type {
   Message,
   SendMessageOptions,
   SendMessageResult,
+  StreamChunk,
   FunctionCall,
 } from "./types.js";
 
@@ -39,6 +40,25 @@ interface ChatCompletionResponse {
   }[];
 }
 
+/** SSE 流式响应中每个 chunk 的结构 */
+interface ChatCompletionChunk {
+  choices: {
+    delta: {
+      content?: string | null;
+      tool_calls?: {
+        index: number;
+        id?: string;
+        type?: "function";
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }[];
+    };
+    finish_reason?: string | null;
+  }[];
+}
+
 export class OpenAICompatibleProvider implements ModelProvider {
   name: string;
   private apiKey: string;
@@ -70,34 +90,34 @@ export class OpenAICompatibleProvider implements ModelProvider {
 
     for (const m of messages) {
       if (m.role === "tool") {
-        // Tool result message: find the functionResponse part
-        const frPart = m.parts.find((p) => p.functionResponse !== undefined);
-        if (frPart?.functionResponse) {
-          chatMessages.push({
-            role: "tool",
-            content: JSON.stringify(frPart.functionResponse.response),
-            tool_call_id: frPart.functionResponse.id,
-          });
+        // Tool result messages: 每个 functionResponse part 独立作为一条 tool message
+        for (const p of m.parts) {
+          if (p.functionResponse) {
+            chatMessages.push({
+              role: "tool",
+              content: JSON.stringify(p.functionResponse.response),
+              tool_call_id: p.functionResponse.id,
+            });
+          }
         }
         continue;
       }
 
-      const fcPart = m.parts.find((p) => p.functionCall !== undefined);
-      if (fcPart?.functionCall) {
-        // Assistant message that contains a tool call
+      // 检查是否包含 functionCall parts（可能有多个并发工具调用）
+      const fcParts = m.parts.filter((p) => p.functionCall !== undefined);
+      if (fcParts.length > 0) {
+        // Assistant message that contains tool calls
         chatMessages.push({
           role: "assistant",
           content: null,
-          tool_calls: [
-            {
-              id: fcPart.functionCall.id,
-              type: "function",
-              function: {
-                name: fcPart.functionCall.name,
-                arguments: JSON.stringify(fcPart.functionCall.args),
-              },
+          tool_calls: fcParts.map((p) => ({
+            id: p.functionCall!.id,
+            type: "function" as const,
+            function: {
+              name: p.functionCall!.name,
+              arguments: JSON.stringify(p.functionCall!.args),
             },
-          ],
+          })),
         });
         continue;
       }
@@ -152,21 +172,127 @@ export class OpenAICompatibleProvider implements ModelProvider {
 
     // Check for tool calls in the response
     if (message.tool_calls && message.tool_calls.length > 0) {
-      const tc = message.tool_calls[0];
-      const functionCall: FunctionCall = {
+      const functionCalls: FunctionCall[] = message.tool_calls.map((tc) => ({
         id: tc.id,
         name: tc.function.name,
         args: JSON.parse(tc.function.arguments) as Record<string, unknown>,
-      };
+      }));
 
       return {
         text,
-        functionCall,
+        functionCalls,
       };
     }
 
     return {
       text,
     };
+  }
+
+  async *streamMessage(
+    messages: Message[],
+    options?: SendMessageOptions
+  ): AsyncGenerator<StreamChunk, void, unknown> {
+    const chatMessages = this.toChatMessages(messages, options);
+    const url = `${this.baseUrl}/chat/completions`;
+
+    const requestBody: Record<string, unknown> = {
+      model: this.model,
+      messages: chatMessages,
+      stream: true,
+    };
+
+    if (options?.tools && options.tools.length > 0) {
+      requestBody.tools = options.tools.map(
+        (decl): OpenAITool => ({
+          type: "function",
+          function: decl,
+        })
+      );
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`${this.name} API error ${res.status}: ${errorText}`);
+    }
+
+    // 解析 SSE 流
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    // 用于按 index 累积多个 tool_call 的增量数据
+    const pendingToolCalls = new Map<number, { id: string; name: string; args: string }>();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      // 保留最后一行（可能不完整）
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+        const data = trimmed.slice(6);
+        if (data === "[DONE]") return;
+
+        let chunk: ChatCompletionChunk;
+        try {
+          chunk = JSON.parse(data) as ChatCompletionChunk;
+        } catch {
+          continue;
+        }
+
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+
+        // 处理文本增量
+        if (choice.delta.content) {
+          yield { deltaText: choice.delta.content };
+        }
+
+        // 处理 tool_call 增量（按 index 分别累积）
+        if (choice.delta.tool_calls) {
+          for (const tc of choice.delta.tool_calls) {
+            let pending = pendingToolCalls.get(tc.index);
+            if (!pending) {
+              pending = { id: "", name: "", args: "" };
+              pendingToolCalls.set(tc.index, pending);
+            }
+            if (tc.id) pending.id = tc.id;
+            if (tc.function?.name) pending.name = tc.function.name;
+            if (tc.function?.arguments) pending.args += tc.function.arguments;
+          }
+        }
+
+        // 流结束时，如果有 tool_calls 则一次性 yield 出来
+        if (choice.finish_reason === "tool_calls" || choice.finish_reason === "stop") {
+          if (pendingToolCalls.size > 0) {
+            const functionCalls: FunctionCall[] = [];
+            // 按 index 排序确保顺序
+            const sorted = [...pendingToolCalls.entries()].sort((a, b) => a[0] - b[0]);
+            for (const [, tc] of sorted) {
+              functionCalls.push({
+                id: tc.id,
+                name: tc.name,
+                args: JSON.parse(tc.args) as Record<string, unknown>,
+              });
+            }
+            yield { functionCalls };
+          }
+        }
+      }
+    }
   }
 }

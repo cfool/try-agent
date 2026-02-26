@@ -1,5 +1,6 @@
 import { ModelClient } from "./model/client.js";
 import type { Message } from "./model/providers/types.js";
+import type { Part, FunctionCall } from "./model/providers/types.js";
 import { ToolRegistry, ToolDefinition } from "./tools/tool-registry.js";
 import { getProjectContext, formatProjectContext } from "./project-context.js";
 import { ChatCompressService, CompressionStatus } from "./context/chat-compress-service.js";
@@ -62,48 +63,79 @@ export class Chat {
     for (let i = 0; i < this.maxRounds; i++) {
       const messages = this.buildMessages();
 
-      const result = await this.client.sendMessage(messages, {
+      // 使用流式接口调用模型
+      let fullText = "";
+      let functionCalls: FunctionCall[] = [];
+
+      const stream = this.client.streamMessage(messages, {
         systemInstruction: this.systemPrompt,
         tools: tools.length > 0 ? tools : undefined,
       });
 
-      this.history.push({ role: "model", parts: [result] });
-
-      if (!result.functionCall) {
-        return result.text ?? "";
+      for await (const chunk of stream) {
+        if (chunk.deltaText) {
+          fullText += chunk.deltaText;
+          this.events.emit("text_delta", { delta: chunk.deltaText });
+        }
+        if (chunk.functionCalls) {
+          functionCalls.push(...chunk.functionCalls);
+        }
       }
 
-      // Execute tool and feed result back to model
-      const { id, name, args } = result.functionCall;
-      const displayArgs = this.toolRegistry!.formatArgs(name, args);
-      this.events.emit("tool_call", { name, args: displayArgs, rawArgs: args as Record<string, unknown> });
+      // 构建 model 消息的 parts：文本 + 所有 functionCall
+      const modelParts: Part[] = [];
+      if (fullText) {
+        modelParts.push({ text: fullText });
+      }
+      for (const fc of functionCalls) {
+        modelParts.push({ functionCall: fc });
+      }
+      if (modelParts.length === 0) {
+        modelParts.push({ text: "" });
+      }
+      this.history.push({ role: "model", parts: modelParts });
 
-      const toolResult = await this.toolRegistry!.execute(name, args);
-      const response = toolResult.error
-        ? { error: toolResult.error }
-        : (toolResult.result as Record<string, unknown>);
+      if (functionCalls.length === 0) {
+        return fullText;
+      }
 
-      const displayOutput = toolResult.error
-        ? `Error: ${toolResult.error}`
-        : toolResult.displayText ?? JSON.stringify(response);
-      this.events.emit("tool_result", {
-        name,
-        output: displayOutput,
-        isError: !!toolResult.error,
-      });
+      // 并发执行所有工具调用
+      for (const fc of functionCalls) {
+        const displayArgs = this.toolRegistry!.formatArgs(fc.name, fc.args);
+        this.events.emit("tool_call", { name: fc.name, args: displayArgs });
+      }
 
-      this.history.push({
-        role: "tool",
-        parts: [
-          {
-            functionResponse: {
-              id,
-              name,
-              response: response as Record<string, unknown>,
-            },
+      const toolResults = await Promise.all(
+        functionCalls.map((fc) => this.toolRegistry!.execute(fc.name, fc.args))
+      );
+
+      // 将所有工具结果推入 history（放在同一条 tool 消息中）
+      const toolParts: Part[] = [];
+      for (let j = 0; j < functionCalls.length; j++) {
+        const fc = functionCalls[j];
+        const toolResult = toolResults[j];
+        const response = toolResult.error
+          ? { error: toolResult.error }
+          : (toolResult.result as Record<string, unknown>);
+
+        const displayOutput = toolResult.error
+          ? `Error: ${toolResult.error}`
+          : toolResult.displayText ?? JSON.stringify(response);
+        this.events.emit("tool_result", {
+          name: fc.name,
+          output: displayOutput,
+          isError: !!toolResult.error,
+        });
+
+        toolParts.push({
+          functionResponse: {
+            id: fc.id,
+            name: fc.name,
+            response: response as Record<string, unknown>,
           },
-        ],
-      });
+        });
+      }
+      this.history.push({ role: "tool", parts: toolParts });
     }
 
     throw new Error("Max tool call rounds exceeded");

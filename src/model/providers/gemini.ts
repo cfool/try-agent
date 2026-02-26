@@ -4,6 +4,7 @@ import type {
   Message,
   SendMessageOptions,
   SendMessageResult,
+  StreamChunk,
   FunctionCall,
 } from "./types.js";
 
@@ -57,20 +58,20 @@ export class GeminiProvider implements ModelProvider {
     const contents: GeminiContent[] = [];
     for (const m of messages) {
       if (m.role === "tool") {
-        // Gemini expects functionResponse as a user-role part
-        const frPart = m.parts.find((p) => p.functionResponse !== undefined);
-        if (frPart?.functionResponse) {
-          contents.push({
-            role: "user",
-            parts: [
-              {
-                functionResponse: {
-                  name: frPart.functionResponse.name,
-                  response: frPart.functionResponse.response,
-                },
+        // Gemini expects functionResponse as user-role parts，多个结果放在同一条消息中
+        const frParts: GeminiPart[] = [];
+        for (const p of m.parts) {
+          if (p.functionResponse) {
+            frParts.push({
+              functionResponse: {
+                name: p.functionResponse.name,
+                response: p.functionResponse.response,
               },
-            ],
-          });
+            });
+          }
+        }
+        if (frParts.length > 0) {
+          contents.push({ role: "user", parts: frParts });
         }
         continue;
       }
@@ -139,21 +140,94 @@ export class GeminiProvider implements ModelProvider {
     const parts = data.candidates[0].content.parts;
 
     const textPart = parts.find((p) => p.text !== undefined);
-    const fcPart = parts.find((p) => p.functionCall !== undefined);
+    const fcParts = parts.filter((p) => p.functionCall !== undefined);
 
-    let functionCall: FunctionCall | undefined;
-    if (fcPart?.functionCall) {
-      functionCall = {
+    let functionCalls: FunctionCall[] | undefined;
+    if (fcParts.length > 0) {
+      functionCalls = fcParts.map((p) => ({
         id: generateGeminiCallId(),
-        name: fcPart.functionCall.name,
-        args: fcPart.functionCall.args,
-        thoughtSignature: fcPart.thoughtSignature,
-      };
+        name: p.functionCall!.name,
+        args: p.functionCall!.args,
+        thoughtSignature: p.thoughtSignature,
+      }));
     }
 
     return {
       text: textPart?.text,
-      functionCall,
+      functionCalls,
     };
+  }
+
+  async *streamMessage(
+    messages: Message[],
+    options?: SendMessageOptions
+  ): AsyncGenerator<StreamChunk, void, unknown> {
+    const body = this.toGeminiRequest(messages, options);
+
+    if (options?.tools && options.tools.length > 0) {
+      body.tools = [{ function_declarations: options.tools }];
+    }
+
+    // Gemini 流式接口使用 streamGenerateContent 端点，加 alt=sse 返回 SSE 格式
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Gemini API error ${res.status}: ${errorText}`);
+    }
+
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+        const data = trimmed.slice(6);
+
+        let parsed: GeminiResponse;
+        try {
+          parsed = JSON.parse(data) as GeminiResponse;
+        } catch {
+          continue;
+        }
+
+        const candidate = parsed.candidates?.[0];
+        if (!candidate?.content?.parts) continue;
+
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            yield { deltaText: part.text };
+          }
+        }
+
+        // 收集本次 chunk 中所有 functionCall parts
+        const fcParts = candidate.content.parts.filter((p) => p.functionCall);
+        if (fcParts.length > 0) {
+          yield {
+            functionCalls: fcParts.map((p) => ({
+              id: generateGeminiCallId(),
+              name: p.functionCall!.name,
+              args: p.functionCall!.args,
+              thoughtSignature: p.thoughtSignature,
+            })),
+          };
+        }
+      }
+    }
   }
 }

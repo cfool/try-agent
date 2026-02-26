@@ -30,7 +30,17 @@ export interface SendMessageOptions {
 
 export interface SendMessageResult {
   text?: string;
-  functionCall?: FunctionCall;
+  functionCalls?: FunctionCall[];
+}
+
+/**
+ * 流式响应的增量数据块。
+ * - deltaText: 本次增量的文本片段
+ * - functionCalls: 当模型决定调用工具时，在流结束时返回完整的 functionCall 列表
+ */
+export interface StreamChunk {
+  deltaText?: string;
+  functionCalls?: FunctionCall[];
 }
 
 export interface ModelProvider {
@@ -39,4 +49,13 @@ export interface ModelProvider {
     messages: Message[],
     options?: SendMessageOptions
   ): Promise<SendMessageResult>;
+
+  /**
+   * 流式发送消息，返回 AsyncGenerator 逐步产出 StreamChunk。
+   * 最后一个 yield 的 chunk 可能包含 functionCall（如果模型决定调用工具）。
+   */
+  streamMessage(
+    messages: Message[],
+    options?: SendMessageOptions
+  ): AsyncGenerator<StreamChunk, void, unknown>;
 }

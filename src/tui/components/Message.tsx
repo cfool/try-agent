@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Text, useStdout } from "ink";
 import type { DisplayMessage } from "../types.js";
 import { MarkdownDisplay } from "./markdown/MarkdownDisplay.js";
@@ -12,6 +12,18 @@ interface MessageProps {
 export const Message: React.FC<MessageProps> = ({ message, isPending = false }) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns ?? 80;
+
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    if (!isPending) {
+      setVisible(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setVisible((v) => !v);
+    }, 500);
+    return () => clearInterval(timer);
+  }, [isPending]);
 
   switch (message.type) {
     case "user":
@@ -28,7 +40,7 @@ export const Message: React.FC<MessageProps> = ({ message, isPending = false }) 
       return (
         <Box flexDirection="row">
           <Text bold color="blue">
-            {"● "}
+            {visible ? "● " : "  "}
           </Text>
           <Box flexDirection="column">
             <MarkdownDisplay

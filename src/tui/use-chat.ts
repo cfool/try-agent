@@ -38,10 +38,14 @@ export function useChat(ctx: AppContext): UseChatReturn {
     []
   );
 
+  // 用于追踪当前正在流式输出的 assistant 消息 id
+  const streamingIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     const events = ctx.events;
-
     const onToolCall = (e: ToolCallEvent) => {
+      // tool_call 出现时结束当前流式消息
+      streamingIdRef.current = null;
       addMessage("tool_call", `${e.name}(${e.args})`, {
         toolCall: { toolName: e.name, args: e.args, rawArgs: e.rawArgs },
       });
@@ -54,15 +58,36 @@ export function useChat(ctx: AppContext): UseChatReturn {
     const onCompressed = (e: { from: number; to: number }) => {
       addMessage("system", `[Context] Compressed: ${e.from} → ${e.to} tokens`);
     };
+    const onTextDelta = (e: { delta: string }) => {
+      if (streamingIdRef.current === null) {
+        // 创建新的 assistant 消息
+        const id = nextId++;
+        streamingIdRef.current = id;
+        setMessages((prev) => [
+          ...prev,
+          { id, type: "assistant" as MessageType, text: e.delta, timestamp: new Date() },
+        ]);
+      } else {
+        // 追加到已有的流式消息
+        const sid = streamingIdRef.current;
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === sid ? { ...msg, text: msg.text + e.delta } : msg
+          )
+        );
+      }
+    };
 
     events.on("tool_call", onToolCall);
     events.on("tool_result", onToolResult);
     events.on("compressed", onCompressed);
+    events.on("text_delta", onTextDelta);
 
     return () => {
       events.off("tool_call", onToolCall);
       events.off("tool_result", onToolResult);
       events.off("compressed", onCompressed);
+      events.off("text_delta", onTextDelta);
     };
   }, [ctx.events, addMessage]);
 
@@ -70,11 +95,13 @@ export function useChat(ctx: AppContext): UseChatReturn {
     (text: string) => {
       addMessage("user", text);
       setLoading(true);
+      streamingIdRef.current = null;
 
       chatRef.current
         .send(text)
-        .then((reply) => {
-          addMessage("assistant", reply);
+        .then(() => {
+          // 流式输出已通过 text_delta 事件实时添加到消息列表，无需再手动添加
+          streamingIdRef.current = null;
         })
         .catch((err) => {
           addMessage("error", String(err));

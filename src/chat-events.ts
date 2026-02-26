@@ -17,10 +17,15 @@ export interface CompressedEvent {
   to: number;
 }
 
+export interface TextDeltaEvent {
+  delta: string;
+}
+
 export interface ChatEventMap {
   tool_call: [ToolCallEvent];
   tool_result: [ToolResultEvent];
   compressed: [CompressedEvent];
+  text_delta: [TextDeltaEvent];
 }
 
 export class ChatEventBus extends EventEmitter<ChatEventMap> {}
