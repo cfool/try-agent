@@ -69,6 +69,7 @@ npm start
 *   [**第 7 阶段：Sub-Agent 模式 (子智能体)**](docs/07-sub-agent.md) - 让多个 AI 专家分工协作，解决复杂任务。
 *   [**第 8 阶段：Agent Skill (技能)**](docs/08-agent-skill.md) - 封装自动化流程，让 Agent 掌握 "一键大招"。
 *   [**第 9 阶段：TUI 交互界面 (Terminal UI)**](docs/09-tui.md) - 用 Ink/React 构建终端 UI，事件驱动渲染，斜杠命令补全。
+*   [**第 10 阶段：流式输出与并行工具调用 (Streaming)**](docs/10-streaming.md) - AsyncGenerator + SSE 实现逐字输出，Promise.all 并行执行工具调用。
 
 ## 学习建议
 
