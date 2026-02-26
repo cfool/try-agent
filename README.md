@@ -68,6 +68,7 @@ npm start
 *   [**第 6 阶段：MCP 协议 (Model Context Protocol)**](docs/06-mcp.md) - 学习 AI 时代的 "USB 标准"，连接万物。
 *   [**第 7 阶段：Sub-Agent 模式 (子智能体)**](docs/07-sub-agent.md) - 让多个 AI 专家分工协作，解决复杂任务。
 *   [**第 8 阶段：Agent Skill (技能)**](docs/08-agent-skill.md) - 封装自动化流程，让 Agent 掌握 "一键大招"。
+*   [**第 9 阶段：TUI 交互界面 (Terminal UI)**](docs/09-tui.md) - 用 Ink/React 构建终端 UI，事件驱动渲染，斜杠命令补全。
 
 ## 学习建议
 
@@ -88,6 +89,7 @@ try_agent/
 ├── src/                        # 源代码
 │   ├── index.ts                # 入口文件
 │   ├── chat.ts                 # Agent 核心逻辑（ReAct 循环）
+│   ├── chat-events.ts          # 事件总线（TUI 解耦）
 │   ├── mcp-client.ts           # MCP 协议客户端
 │   ├── project-context.ts      # 项目上下文注入
 │   ├── system-prompt.ts        # 系统提示词管理
@@ -119,6 +121,13 @@ try_agent/
 │   │   ├── skill-types.ts      # Skill 类型定义
 │   │   ├── skill-registry.ts   # Skill 注册中心
 │   │   └── skill-loader.ts     # Skill 加载器
+│   ├── tui/                    # TUI 交互界面
+│   │   ├── index.tsx           # TUI 入口
+│   │   ├── types.ts            # UI 类型定义
+│   │   ├── slash-commands.ts   # 斜杠命令注册表
+│   │   ├── use-chat.ts         # Chat 状态管理 hook
+│   │   ├── use-command-list.ts # 命令补全 hook
+│   │   └── components/         # Ink/React 组件
 │   ├── prompts/                # 系统提示词模板
 │   │   ├── gemini-cli.md       # Gemini CLI 风格
 │   │   ├── coding-mentor.md    # 编程导师
@@ -147,7 +156,7 @@ try_agent/
 A: 检查 `.env` 文件是否正确配置了 API Key。
 
 **Q: 如何切换模型？**
-A: 运行时使用 `/use <model-name>` 命令（如 `/use deepseek-v3.2`），或在 `.env` 中设置 `MODEL` 环境变量。
+A: 运行时使用 `/use <model-name>` 命令（如 `/use deepseek-v3.2`），或在 `.env` 中设置 `MODEL` 环境变量。（在 [第 9 部分：TUI](docs/09-tui.md) 中，`/use` 将升级为交互式的 `/model` 命令）
 
 **Q: Token 超限怎么办？**
 A: 参考 [上下文管理](docs/05-context-management.md) 章节。

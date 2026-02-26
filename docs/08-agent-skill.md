@@ -2,7 +2,7 @@
 
 > **导航**：首页 » 进阶架构
 >
-> ⬅️ [上一章：Sub-Agent](./07-sub-agent.md) | ➡️ [返回目录](../README.md)
+> ⬅️ [上一章：Sub-Agent](./07-sub-agent.md) | ➡️ [下一章：TUI 交互界面](./09-tui.md)
 
 ---
 
@@ -303,4 +303,4 @@ Skill 本质上是**把专家经验固化成 Markdown 文件**。一个好的 Sk
 
 > **导航**：首页 » 进阶架构
 >
-> ⬅️ [上一章：Sub-Agent](./07-sub-agent.md) | ➡️ [返回目录](../README.md)
+> ⬅️ [上一章：Sub-Agent](./07-sub-agent.md) | ➡️ [下一章：TUI 交互界面](./09-tui.md)
