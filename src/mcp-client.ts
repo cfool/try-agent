@@ -15,7 +15,7 @@ import type {
   ToolExecuteResult,
   ToolParameter,
   ToolRegistry,
-} from "./tool-registry.js";
+} from "./tools/tool-registry.js";
 
 // ── Config types ────────────────────────────────────────────────────
 

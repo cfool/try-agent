@@ -1,5 +1,6 @@
 import type { Message, Part } from "../model/providers/types.js";
 import { ModelClient } from "../model/client.js";
+import type { ChatEventBus } from "../chat-events.js";
 
 /**
  * 压缩阈值：当 history 的估算 token 数超过模型 token 上限的此比例时触发压缩。
@@ -180,9 +181,11 @@ function truncateHistoryToBudget(history: Message[]): Message[] {
  */
 export class ChatCompressService {
   private client: ModelClient;
+  private events: ChatEventBus;
 
-  constructor(client: ModelClient) {
+  constructor(client: ModelClient, events: ChatEventBus) {
     this.client = client;
+    this.events = events;
   }
 
   async compressIfNeeded(history: Message[]): Promise<CompressionResult> {
@@ -275,9 +278,10 @@ export class ChatCompressService {
       };
     }
 
-    console.log(
-      `[Context] Compressed: ${originalTokenCount} → ${newTokenCount} tokens`
-    );
+    this.events.emit("compressed", {
+      from: originalTokenCount,
+      to: newTokenCount,
+    });
 
     return {
       newHistory,

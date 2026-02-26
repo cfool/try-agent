@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "./tool-registry.js";
 
 export class RunShellCommand implements Tool {
   private timeoutMs: number;

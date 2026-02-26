@@ -1,12 +1,15 @@
 import { ModelClient } from "./model/client.js";
 import type { Message } from "./model/providers/types.js";
-import { ToolRegistry, ToolDefinition } from "./tool-registry.js";
+import { ToolRegistry, ToolDefinition } from "./tools/tool-registry.js";
 import { getProjectContext, formatProjectContext } from "./project-context.js";
 import { ChatCompressService, CompressionStatus } from "./context/chat-compress-service.js";
+import type { ChatEventBus } from "./chat-events.js";
 
 export interface ChatOptions {
   /** 最大工具调用轮数（默认 100） */
   maxRounds?: number;
+  /** 事件总线，用于向 TUI 发送 tool_call / tool_result 事件 */
+  events: ChatEventBus;
 }
 
 export class Chat {
@@ -16,18 +19,20 @@ export class Chat {
   private toolRegistry?: ToolRegistry;
   private compressService: ChatCompressService;
   private maxRounds: number;
+  private events: ChatEventBus;
 
   constructor(
     client: ModelClient,
     systemPrompt: string,
-    toolRegistry?: ToolRegistry,
-    options?: ChatOptions
+    toolRegistry: ToolRegistry,
+    options: ChatOptions
   ) {
     this.client = client;
     this.systemPrompt = systemPrompt;
     this.toolRegistry = toolRegistry;
-    this.compressService = new ChatCompressService(client);
-    this.maxRounds = options?.maxRounds ?? 100;
+    this.events = options.events;
+    this.compressService = new ChatCompressService(client, this.events);
+    this.maxRounds = options.maxRounds ?? 100;
   }
 
   /**
@@ -71,7 +76,7 @@ export class Chat {
       // Execute tool and feed result back to model
       const { id, name, args } = result.functionCall;
       const displayArgs = this.toolRegistry!.formatArgs(name, args);
-      console.log(`\n[Tool Call] ${name}(${displayArgs})`);
+      this.events.emit("tool_call", { name, args: displayArgs });
 
       const toolResult = await this.toolRegistry!.execute(name, args);
       const response = toolResult.error
@@ -81,7 +86,11 @@ export class Chat {
       const displayOutput = toolResult.error
         ? `Error: ${toolResult.error}`
         : toolResult.displayText ?? JSON.stringify(response);
-      console.log(`[Tool Result] ${displayOutput}\n`);
+      this.events.emit("tool_result", {
+        name,
+        output: displayOutput,
+        isError: !!toolResult.error,
+      });
 
       this.history.push({
         role: "tool",

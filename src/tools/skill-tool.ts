@@ -1,4 +1,4 @@
-import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "./tool-registry.js";
 import { SkillRegistry } from "../skills/skill-registry.js";
 import { SkillLoader } from "../skills/skill-loader.js";
 

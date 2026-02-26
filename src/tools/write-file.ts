@@ -1,6 +1,6 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "./tool-registry.js";
 
 export class WriteFile implements Tool {
   definition: ToolDefinition = {

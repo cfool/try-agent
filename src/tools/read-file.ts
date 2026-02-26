@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "./tool-registry.js";
 
 export class ReadFile implements Tool {
   definition: ToolDefinition = {

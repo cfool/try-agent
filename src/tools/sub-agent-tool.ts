@@ -1,7 +1,8 @@
-import { Tool, ToolDefinition, ToolExecuteResult, ToolRegistry } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult, ToolRegistry } from "./tool-registry.js";
 import { SubAgentRegistry } from "../subagents/sub-agent-registry.js";
 import { ModelClient } from "../model/client.js";
 import { Chat } from "../chat.js";
+import { ChatEventBus } from "../chat-events.js";
 
 /**
  * SubAgentTool — 将任务委派给子 Agent 执行。
@@ -19,7 +20,8 @@ export class SubAgentTool implements Tool {
   constructor(
     private subAgentRegistry: SubAgentRegistry,
     private parentRegistry: ToolRegistry,
-    private client: ModelClient
+    private client: ModelClient,
+    private events: ChatEventBus
   ) {
     const agents = this.subAgentRegistry.list();
     const agentList = agents
@@ -103,16 +105,13 @@ export class SubAgentTool implements Tool {
     }
 
     try {
-      console.log(`\n[SubAgent:${agentDef.name}] Starting task...`);
-
-      // 创建独立 Chat 实例
+      // 创建独立 Chat 实例（共享事件总线，tool_call / tool_result 会出现在 TUI 中）
       const subChat = new Chat(this.client, agentDef.systemPrompt, subRegistry, {
         maxRounds: agentDef.maxTurns,
+        events: this.events,
       });
 
       const result = await subChat.send(task);
-
-      console.log(`[SubAgent:${agentDef.name}] Task completed.`);
 
       return {
         data: { agent: agentDef.name, result },

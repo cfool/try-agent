@@ -12,10 +12,16 @@
   "description": "",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "dotenv": "^17.2.4"
+    "dotenv": "^17.2.4",
+    "ink": "^5.2.1",
+    "ink-text-input": "^6.0.0",
+    "react": "^18.3.1",
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.2.2",
+    "@types/react": "^18.3.28",
+    "@types/yargs": "^17.0.35",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

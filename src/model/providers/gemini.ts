@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "../../tool-registry.js";
+import type { ToolDefinition } from "../../tools/tool-registry.js";
 import type {
   ModelProvider,
   Message,

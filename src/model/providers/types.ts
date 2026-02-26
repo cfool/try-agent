@@ -1,4 +1,4 @@
-import { ToolDefinition } from "../../tool-registry";
+import { ToolDefinition } from "../../tools/tool-registry";
 
 export interface FunctionCall {
   id: string;

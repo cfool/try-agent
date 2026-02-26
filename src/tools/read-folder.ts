@@ -1,6 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { Tool, ToolDefinition, ToolExecuteResult } from "../tool-registry.js";
+import { Tool, ToolDefinition, ToolExecuteResult } from "./tool-registry.js";
 
 export class ReadFolder implements Tool {
   definition: ToolDefinition = {
