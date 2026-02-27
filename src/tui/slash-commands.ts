@@ -4,9 +4,20 @@ export type SlashCommandHandler = (args: string) => void | Promise<void>;
 
 export interface SlashCommandDefinition extends SlashCommand {
   handler: SlashCommandHandler;
+  /**
+   * If set, executing this command opens the named panel instead of calling `handler`.
+   * The App component maps panel IDs to specialized components.
+   */
+  panel?: string;
 }
 
 type Listener = () => void;
+
+export interface ExecuteResult {
+  matched: boolean;
+  /** If set, the App should open this panel instead of the default handler. */
+  panel?: string;
+}
 
 export class SlashCommandRegistry {
   private commands = new Map<string, SlashCommandDefinition>();
@@ -37,25 +48,31 @@ export class SlashCommandRegistry {
 
   /**
    * Try to execute input as a slash command.
-   * Returns true if a command was matched and executed, false otherwise.
+   * Returns an ExecuteResult indicating whether a command matched,
+   * and optionally a panel ID to open.
    */
-  execute(input: string): boolean {
+  execute(input: string): ExecuteResult {
     const trimmed = input.trim();
-    if (!trimmed.startsWith("/")) return false;
+    if (!trimmed.startsWith("/")) return { matched: false };
 
     const spaceIdx = trimmed.indexOf(" ");
     const name = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx);
     const args = spaceIdx === -1 ? "" : trimmed.slice(spaceIdx + 1).trim();
 
     const def = this.commands.get(name.toLowerCase());
-    if (!def) return false;
+    if (!def) return { matched: false };
+
+    // If the command declares a panel, signal it to the App
+    if (def.panel) {
+      return { matched: true, panel: def.panel };
+    }
 
     def.handler(args);
-    return true;
+    return { matched: true };
   }
 
   private buildSnapshot(): SlashCommand[] {
-    return [...this.commands.values()].map(({ handler: _, ...rest }) => rest);
+    return [...this.commands.values()].map(({ handler: _, panel: _p, ...rest }) => rest);
   }
 
   private emit(): void {

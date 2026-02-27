@@ -4,6 +4,8 @@ import { StatusBar } from "./StatusBar.js";
 import { MessageList } from "./MessageList.js";
 import { InputBox } from "./InputBox.js";
 import { WelcomeBox } from "./WelcomeBox.js";
+import { AgentsPanel } from "./AgentsPanel.js";
+import { SkillsPanel } from "./SkillsPanel.js";
 import { useChat } from "../use-chat.js";
 import type { AppContext } from "../types.js";
 
@@ -15,6 +17,8 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
   const { messages, loading, modelName, sendMessage, newChat, switchModel, addSystemMessage } =
     useChat(ctx);
   const [input, setInput] = useState("");
+  /** Which panel is currently open, or null for the normal input box */
+  const [activePanel, setActivePanel] = useState<string | null>(null);
   const app = useApp();
 
   // Ref that always holds the latest callbacks, read at invocation time by handlers
@@ -53,35 +57,15 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
     commands.register({
       name: "/agents",
       description: "List registered sub-agents",
-      handler: () => {
-        const agents = ctx.subAgentRegistry.list();
-        if (agents.length === 0) {
-          actionsRef.current.addSystemMessage("No sub-agents registered.");
-        } else {
-          const lines = agents.map((a) => `  ${a.name} — ${a.description}`);
-          actionsRef.current.addSystemMessage(
-            `Registered Sub-Agents (${agents.length}):\n${lines.join("\n")}`
-          );
-        }
-      },
+      panel: "agents",
+      handler: () => {},
     });
 
     commands.register({
       name: "/skills",
       description: "List registered skills",
-      handler: () => {
-        const skills = ctx.skillRegistry.list();
-        if (skills.length === 0) {
-          actionsRef.current.addSystemMessage("No skills registered.");
-        } else {
-          const lines = skills.map(
-            (s) => `  ${s.trigger} — ${s.name}: ${s.description}`
-          );
-          actionsRef.current.addSystemMessage(
-            `Registered Skills (${skills.length}):\n${lines.join("\n")}`
-          );
-        }
-      },
+      panel: "skills",
+      handler: () => {},
     });
 
     // Register skill triggers as slash commands
@@ -104,24 +88,58 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
 
       setInput("");
 
-      if (ctx.commands.execute(text)) return;
+      const result = ctx.commands.execute(text);
+      if (result.matched) {
+        if (result.panel) {
+          setActivePanel(result.panel);
+        }
+        return;
+      }
 
       sendMessage(text);
     },
     [ctx, sendMessage]
   );
 
+  const handleClosePanel = useCallback(() => {
+    setActivePanel(null);
+  }, []);
+
+  // Render the active panel, or fall back to InputBox
+  const renderMiddle = () => {
+    switch (activePanel) {
+      case "agents":
+        return (
+          <AgentsPanel
+            agents={ctx.subAgentRegistry.list()}
+            onClose={handleClosePanel}
+          />
+        );
+      case "skills":
+        return (
+          <SkillsPanel
+            skills={ctx.skillRegistry.list()}
+            onClose={handleClosePanel}
+          />
+        );
+      default:
+        return (
+          <InputBox
+            value={input}
+            onChange={setInput}
+            onSubmit={handleSubmit}
+            disabled={loading}
+            commands={ctx.commands}
+          />
+        );
+    }
+  };
+
   return (
     <Box flexDirection="column" height="100%">
       <WelcomeBox />
       <MessageList messages={messages} />
-      <InputBox
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        disabled={loading}
-        commands={ctx.commands}
-      />
+      {renderMiddle()}
       <StatusBar modelName={modelName} loading={loading} />
     </Box>
   );
