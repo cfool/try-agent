@@ -4,7 +4,7 @@ import { TencentProvider } from "./providers/tencent.js";
 import type { Message, ModelProvider, SendMessageOptions, SendMessageResult } from "./providers/types.js";
 import { ZhiPuProvider } from "./providers/zhipu.js";
 
-interface ModelConfig {
+export interface ModelConfig {
   name: string;
   alias?: string;
   provider: ModelProvider;
@@ -35,6 +35,15 @@ export class ModelClient {
       throw new Error("No model registered.");
     }
     return this.providers.get(this.currentModel)!;
+  }
+
+  /** Return all registered models with their active status. */
+  listModels(): Array<{ name: string; alias?: string; active: boolean }> {
+    return [...this.providers.values()].map((m) => ({
+      name: m.name,
+      alias: m.alias,
+      active: m.name === this.currentModel,
+    }));
   }
 
   async sendMessage(messages: Message[], options?: SendMessageOptions): Promise<SendMessageResult> {

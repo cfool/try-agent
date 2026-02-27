@@ -6,6 +6,7 @@ import { InputBox } from "./InputBox.js";
 import { WelcomeBox } from "./WelcomeBox.js";
 import { AgentsPanel } from "./AgentsPanel.js";
 import { SkillsPanel } from "./SkillsPanel.js";
+import { ModelsPanel } from "./ModelsPanel.js";
 import { useChat } from "../use-chat.js";
 import type { AppContext } from "../types.js";
 
@@ -42,16 +43,10 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
     });
 
     commands.register({
-      name: "/use",
-      description: "Switch model — /use <model>",
-      hasArg: true,
-      handler: (args) => {
-        if (!args) {
-          actionsRef.current.addSystemMessage("Usage: /use <model>");
-          return;
-        }
-        actionsRef.current.switchModel(args);
-      },
+      name: "/model",
+      description: "Select a model interactively",
+      panel: "models",
+      handler: () => {},
     });
 
     commands.register({
@@ -120,6 +115,17 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
           <SkillsPanel
             skills={ctx.skillRegistry.list()}
             onClose={handleClosePanel}
+          />
+        );
+      case "models":
+        return (
+          <ModelsPanel
+            models={ctx.client.listModels()}
+            onClose={handleClosePanel}
+            onSelect={(modelName) => {
+              actionsRef.current.switchModel(modelName);
+              setActivePanel(null);
+            }}
           />
         );
       default:

@@ -39,7 +39,7 @@ export interface DisplayMessage {
 export interface SlashCommand {
   name: string;
   description: string;
-  /** If true, the command expects an argument after the name (e.g. /use <model>) */
+  /** If true, the command expects an argument after the name (e.g. /model) */
   hasArg?: boolean;
 }
 
