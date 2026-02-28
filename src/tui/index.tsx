@@ -71,7 +71,7 @@ export async function startApp(options: StartAppOptions = {}): Promise<void> {
   subAgentRegistry.registerBuiltin(createCodebaseInvestigator());
   await subAgentRegistry.loadFromDirectory();
   if (!subAgentRegistry.isEmpty) {
-    registry.register(new SubAgentTool(subAgentRegistry, registry, client, events));
+    registry.register(new SubAgentTool(subAgentRegistry, registry, client, events, bgManager));
   }
 
   const skillRegistry = new SkillRegistry();

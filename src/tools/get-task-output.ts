@@ -7,14 +7,15 @@ export class GetTaskOutput implements Tool {
   definition: ToolDefinition = {
     name: "get_task_output",
     description:
-      "Query the status and output of a background task started with run_shell_command(run_in_background=true). " +
-      "Returns the task's current status, exit code, stdout, stderr, and elapsed time.",
+      "Query the status and output of a background task started with run_shell_command(run_in_background=true) " +
+      "or sub_agent(run_in_background=true). " +
+      "Returns the task's current status, output, and elapsed time.",
     parameters: {
       type: "object",
       properties: {
         task_id: {
           type: "string",
-          description: "The background task ID (e.g. bg-a1b2c3d4)",
+          description: "The background task ID (e.g. bg-a1b2c3d4 for shell, sa-a1b2c3d4 for sub-agent)",
         },
       },
       required: ["task_id"],
@@ -44,6 +45,28 @@ export class GetTaskOutput implements Tool {
     const elapsedSeconds = Math.round(
       ((task.completedAt ?? now) - task.startedAt) / 1000
     );
+
+    if (task.type === "sub_agent") {
+      const data = {
+        taskId: task.taskId,
+        type: task.type,
+        agentName: task.agentName,
+        status: task.status,
+        result: task.result,
+        elapsedSeconds,
+      };
+
+      const lines: string[] = [
+        `Task ${task.taskId}: ${task.status} (${elapsedSeconds}s)`,
+        `Agent: ${task.agentName}`,
+      ];
+      if (task.result) lines.push(task.result.trimEnd());
+
+      return Promise.resolve({
+        data,
+        displayText: lines.join("\n"),
+      });
+    }
 
     const data = {
       taskId: task.taskId,

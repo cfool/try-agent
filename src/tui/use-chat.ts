@@ -24,6 +24,17 @@ function formatBgTaskResult(task: BackgroundTaskInfo): string {
   const elapsed = Math.round(
     ((task.completedAt ?? Date.now()) - task.startedAt) / 1000
   );
+
+  if (task.type === "sub_agent") {
+    const lines = [
+      `[Background task ${task.taskId} ${task.status}]`,
+      `Agent: ${task.agentName}`,
+      `Elapsed: ${elapsed}s`,
+    ];
+    if (task.result) lines.push(`Result:\n${task.result.trimEnd()}`);
+    return lines.join("\n");
+  }
+
   const lines = [
     `[Background task ${task.taskId} ${task.status}]`,
     `$ ${task.command}`,

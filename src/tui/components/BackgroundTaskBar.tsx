@@ -54,7 +54,9 @@ const TaskRow: React.FC<{ task: BackgroundTaskInfo }> = ({ task }) => {
       ? "green"
       : "red";
 
-  const label = task.description || truncate(task.command, MAX_CMD_LEN);
+  const label = task.type === "sub_agent"
+    ? `[Agent:${task.agentName}] ${task.description || ""}`
+    : task.description || truncate(task.command, MAX_CMD_LEN);
 
   if (isRunning) {
     return (
@@ -69,9 +71,11 @@ const TaskRow: React.FC<{ task: BackgroundTaskInfo }> = ({ task }) => {
 
   // Completed / failed / killed — show only result summary
   const resultTag =
-    task.status === "completed"
-      ? `exit 0`
-      : `exit ${task.exitCode ?? "?"}`;
+    task.type === "sub_agent"
+      ? task.status
+      : task.status === "completed"
+        ? `exit 0`
+        : `exit ${task.exitCode ?? "?"}`;
 
   return (
     <Box gap={1}>

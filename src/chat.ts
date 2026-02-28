@@ -73,14 +73,22 @@ export class Chat {
       const elapsed = Math.round(
         ((task.completedAt ?? Date.now()) - task.startedAt) / 1000
       );
-      const summary = [
+
+      const summary: string[] = [
         `[Background task ${task.taskId} ${task.status}]`,
-        `$ ${task.command}`,
-        `Exit code: ${task.exitCode ?? "N/A"}`,
-        `Elapsed: ${elapsed}s`,
       ];
-      if (task.stdout) summary.push(`stdout:\n${task.stdout.trimEnd()}`);
-      if (task.stderr) summary.push(`stderr:\n${task.stderr.trimEnd()}`);
+
+      if (task.type === "sub_agent") {
+        summary.push(`Agent: ${task.agentName}`);
+        summary.push(`Elapsed: ${elapsed}s`);
+        if (task.result) summary.push(`Result:\n${task.result.trimEnd()}`);
+      } else {
+        summary.push(`$ ${task.command}`);
+        summary.push(`Exit code: ${task.exitCode ?? "N/A"}`);
+        summary.push(`Elapsed: ${elapsed}s`);
+        if (task.stdout) summary.push(`stdout:\n${task.stdout.trimEnd()}`);
+        if (task.stderr) summary.push(`stderr:\n${task.stderr.trimEnd()}`);
+      }
 
       const text = summary.join("\n");
       this.history.push({
