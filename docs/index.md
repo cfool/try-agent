@@ -1,7 +1,8 @@
 ---
 title: 首页
 layout: default
-nav_order: 1
+nav_order: 0
+permalink: /
 ---
 
 # AI Agent 开发教程

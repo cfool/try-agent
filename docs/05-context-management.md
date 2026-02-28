@@ -1,6 +1,7 @@
 ---
 title: 上下文管理
-nav_order: 10
+nav_order: 1
+parent: 进阶架构
 ---
 
 # 第 5 阶段：上下文管理 (Context Management)

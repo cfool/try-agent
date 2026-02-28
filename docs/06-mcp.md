@@ -1,6 +1,7 @@
 ---
 title: MCP 协议
-nav_order: 11
+nav_order: 2
+parent: 进阶架构
 ---
 
 # 第 6 阶段：MCP 协议 (Model Context Protocol)

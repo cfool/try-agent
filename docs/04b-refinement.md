@@ -1,6 +1,7 @@
 ---
 title: 工程化完善
-nav_order: 9
+nav_order: 6
+parent: 实战开发
 ---
 
 # 第 4.5 阶段：工程化完善 (Refinement)

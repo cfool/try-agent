@@ -1,6 +1,7 @@
 ---
 title: Sub-Agent
-nav_order: 12
+nav_order: 3
+parent: 进阶架构
 ---
 
 # 第 7 阶段：Sub-Agent 模式 (子智能体)

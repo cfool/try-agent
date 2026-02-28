@@ -1,6 +1,7 @@
 ---
 title: 多模型支持
-nav_order: 5
+nav_order: 2
+parent: 实战开发
 ---
 
 # 第 1.5 阶段：给 AI 换个"大脑" (Multi-Model Support)

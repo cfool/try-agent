@@ -1,6 +1,7 @@
 ---
 title: 环境配置
-nav_order: 2
+nav_order: 1
+parent: 准备工作
 ---
 
 # 环境配置 (Setup)

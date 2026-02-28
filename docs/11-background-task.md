@@ -1,6 +1,7 @@
 ---
 title: 后台任务
-nav_order: 16
+nav_order: 7
+parent: 进阶架构
 ---
 
 # 第 11 阶段：后台任务管理 (Background Task)

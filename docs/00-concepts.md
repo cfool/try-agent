@@ -1,6 +1,7 @@
 ---
 title: 核心概念
-nav_order: 3
+nav_order: 1
+parent: 核心概念篇
 ---
 
 # 第 0 章：核心概念 (Core Concepts)

@@ -1,6 +1,7 @@
 ---
 title: Hello AI
-nav_order: 4
+nav_order: 1
+parent: 实战开发
 ---
 
 # 第 1 阶段：让 AI 开口说话 (Hello AI)

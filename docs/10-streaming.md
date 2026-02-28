@@ -1,6 +1,7 @@
 ---
 title: 流式输出
-nav_order: 15
+nav_order: 6
+parent: 进阶架构
 ---
 
 # 第 10 阶段：流式输出与并行工具调用 (Streaming & Parallel Tool Calls)

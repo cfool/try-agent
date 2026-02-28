@@ -1,6 +1,7 @@
 ---
 title: Agent Loop
-nav_order: 8
+nav_order: 5
+parent: 实战开发
 ---
 
 # 第 4 阶段：Agent Loop (ReAct)

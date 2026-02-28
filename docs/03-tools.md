@@ -1,6 +1,7 @@
 ---
 title: 工具系统
-nav_order: 7
+nav_order: 4
+parent: 实战开发
 ---
 
 # 第 3 阶段：给 AI 一双手 (Tools)

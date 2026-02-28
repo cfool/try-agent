@@ -1,6 +1,7 @@
 ---
 title: 记忆与上下文
-nav_order: 6
+nav_order: 3
+parent: 实战开发
 ---
 
 # 第 2 阶段：让 AI 记住上下文 (Memory)

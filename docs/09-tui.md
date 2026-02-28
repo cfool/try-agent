@@ -1,6 +1,7 @@
 ---
 title: TUI 界面
-nav_order: 14
+nav_order: 5
+parent: 进阶架构
 ---
 
 # 第 9 阶段：TUI 交互界面 (Terminal UI)

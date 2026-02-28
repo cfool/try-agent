@@ -1,6 +1,7 @@
 ---
 title: Agent Skill
-nav_order: 13
+nav_order: 4
+parent: 进阶架构
 ---
 
 # 第 8 阶段：Agent Skill (技能)
