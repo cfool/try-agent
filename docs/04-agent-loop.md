@@ -1,10 +1,9 @@
-# 第 4 阶段：Agent Loop (ReAct)
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Tools](./03-tools.md) | ➡️ [下一章：工程化完善](./04b-refinement.md)
-
 ---
+title: Agent Loop
+nav_order: 8
+---
+
+# 第 4 阶段：Agent Loop (ReAct)
 
 **Branch:** `04-loop`
 
@@ -109,9 +108,3 @@ registry.register(new EditFile());
 ```
 
 工具越多，Agent 能力越强。但原理不变：**LLM 决策，工具执行，循环驱动。**
-
----
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Tools](./03-tools.md) | ➡️ [下一章：工程化完善](./04b-refinement.md)

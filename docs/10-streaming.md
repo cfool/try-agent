@@ -1,10 +1,9 @@
-# 第 10 阶段：流式输出与并行工具调用 (Streaming & Parallel Tool Calls)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：TUI 交互界面](./09-tui.md) | ➡️ [下一章：后台任务管理](./11-background-task.md)
-
 ---
+title: 流式输出
+nav_order: 15
+---
+
+# 第 10 阶段：流式输出与并行工具调用 (Streaming & Parallel Tool Calls)
 
 **Branch:** `10-streaming`
 
@@ -513,9 +512,3 @@ src/
 流式输出的改造贯穿四层：**Provider** 解析 SSE 流并 yield chunk → **ModelClient** 透传 AsyncGenerator → **Chat** 消费流并 emit `text_delta` 事件 → **TUI** 订阅事件实时更新消息。每一层只做自己该做的事，层与层之间通过 AsyncGenerator 和 EventBus 解耦。并行工具调用是顺手的优化——把 `for` 循环改成 `Promise.all`，一行代码换来成倍的速度提升。
 
 > **流式输出 = AsyncGenerator + SSE 解析 + 事件推送。模型边想边说，用户边看边等，工具并发执行。从"等结果"到"看过程"，体验从等待变成了对话。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：TUI 交互界面](./09-tui.md) | ➡️ [下一章：后台任务管理](./11-background-task.md)

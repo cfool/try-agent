@@ -1,10 +1,9 @@
-# 第 1 阶段：让 AI 开口说话 (Hello AI)
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：核心概念](./00-concepts.md) | ➡️ [下一章：多模型支持](./01b-multi-model.md)
-
 ---
+title: Hello AI
+nav_order: 4
+---
+
+# 第 1 阶段：让 AI 开口说话 (Hello AI)
 
 **Branch:** `01-hello`
 
@@ -68,9 +67,3 @@ const systemPrompt = getSystemPrompt("anime-girl");
 
 **能力：** 单轮问答，你说一句它答一句，关终端就全忘。
 **类比：** 一条金鱼，记忆只有 7 秒。
-
----
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：核心概念](./00-concepts.md) | ➡️ [下一章：多模型支持](./01b-multi-model.md)

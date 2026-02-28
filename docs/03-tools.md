@@ -1,10 +1,9 @@
-# 第 3 阶段：给 AI 一双手 (Tools)
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Memory](./02-memory.md) | ➡️ [下一章：Agent Loop](./04-agent-loop.md)
-
 ---
+title: 工具系统
+nav_order: 7
+---
+
+# 第 3 阶段：给 AI 一双手 (Tools)
 
 **Branch:** `03-tools`
 
@@ -77,9 +76,3 @@ execute(params: Record<string, unknown>): Promise<unknown> {
 ```
 
 **AI 没有真的执行命令**，它只是下达指令，代码负责跑腿。
-
----
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Memory](./02-memory.md) | ➡️ [下一章：Agent Loop](./04-agent-loop.md)

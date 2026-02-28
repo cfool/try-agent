@@ -1,0 +1,9 @@
+title: AI Agent 开发教程
+description: 从零构建命令行 AI 智能体
+remote_theme: just-the-docs/just-the-docs
+search_enabled: true
+color_scheme: dark
+
+# 排除不需要的文件
+exclude:
+  - "09/plan.md"

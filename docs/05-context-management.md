@@ -1,10 +1,9 @@
-# 第 5 阶段：上下文管理 (Context Management)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：工程化完善](./04b-refinement.md) | ➡️ [下一章：MCP 协议](./06-mcp.md)
-
 ---
+title: 上下文管理
+nav_order: 10
+---
+
+# 第 5 阶段：上下文管理 (Context Management)
 
 **Branch:** `05-context`
 
@@ -143,9 +142,3 @@ async compressIfNeeded(history: Message[]): Promise<CompressionResult> {
 ```
 
 > **上下文管理 = 在有限的白板上精打细算：哪些要保留、哪些压缩、哪些需要时再查。没有银弹，按场景组合。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：工程化完善](./04b-refinement.md) | ➡️ [下一章：MCP 协议](./06-mcp.md)

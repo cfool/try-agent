@@ -1,10 +1,9 @@
-# 第 4.5 阶段：工程化完善 (Refinement)
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Agent Loop](./04-agent-loop.md) | ➡️ [下一章：上下文管理](./05-context-management.md)
-
 ---
+title: 工程化完善
+nav_order: 9
+---
+
+# 第 4.5 阶段：工程化完善 (Refinement)
 
 **Branch:** `04b-refine`
 
@@ -89,9 +88,3 @@ export interface ToolExecuteResult {
 ---
 
 通过这四步，我们完成了从 **"玩具 Agent"** 到 **"工程化 Agent"** 的跨越。它现在更聪明（有上下文）、更稳健（有专用工具）、更友好（有漂亮的 UI）、更高效（提示词精简）。
-
----
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Agent Loop](./04-agent-loop.md) | ➡️ [下一章：上下文管理](./05-context-management.md)

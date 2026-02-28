@@ -1,10 +1,9 @@
-# 第 6 阶段：MCP 协议 (Model Context Protocol)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：上下文管理](./05-context-management.md) | ➡️ [下一章：Sub-Agent](./07-sub-agent.md)
-
 ---
+title: MCP 协议
+nav_order: 11
+---
+
+# 第 6 阶段：MCP 协议 (Model Context Protocol)
 
 **Branch:** `06-mcp`
 
@@ -146,9 +145,3 @@ server.listen();
 Agent 端不需要知道天气怎么查的，只要连上这个 Server，就多了一个 `get_weather` 工具。
 
 > **MCP = AI 工具的 USB 标准。Server 是外设，Client 是接口，Host 是你的电脑。插上就能用。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：上下文管理](./05-context-management.md) | ➡️ [下一章：Sub-Agent](./07-sub-agent.md)

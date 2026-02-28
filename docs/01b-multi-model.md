@@ -1,10 +1,9 @@
-# 第 1.5 阶段：给 AI 换个"大脑" (Multi-Model Support)
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Hello AI](./01-hello-ai.md) | ➡️ [下一章：Memory](./02-memory.md)
-
 ---
+title: 多模型支持
+nav_order: 5
+---
+
+# 第 1.5 阶段：给 AI 换个"大脑" (Multi-Model Support)
 
 **Branch:** `01b-multi-model`
 
@@ -222,9 +221,3 @@ You: /use gemini-3-flash-preview
 
 **能力：** 可以在多个"大脑"之间无缝切换，为不同的任务选择最合适的 AI 模型。
 **类比：** 你现在拥有一个复仇者联盟，而不是只有一个钢铁侠。
-
----
-
-> **导航**：首页 » 实战开发
->
-> ⬅️ [上一章：Hello AI](./01-hello-ai.md) | ➡️ [下一章：Memory](./02-memory.md)

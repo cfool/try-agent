@@ -1,10 +1,9 @@
-# 第 9 阶段：TUI 交互界面 (Terminal UI)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：Agent Skill](./08-agent-skill.md) | ➡️ [下一章：流式输出](./10-streaming.md)
-
 ---
+title: TUI 界面
+nav_order: 14
+---
+
+# 第 9 阶段：TUI 交互界面 (Terminal UI)
 
 **Branch:** `09-tui`
 
@@ -605,9 +604,3 @@ src/
 TUI 不是换了个皮肤那么简单。**事件总线**让 Chat 逻辑和 UI 渲染彻底解耦——以后换成 Web UI、Electron 界面，Chat 层的代码一行不用改，只需要换一个事件订阅者。**斜杠命令注册表**让命令管理标准化——新增命令只需调 `register()`，补全、执行自动就绪。**ToolCallBox** 把工具调用从杂乱的日志升级为结构化的卡片，一眼看清调了什么、结果如何。**Markdown 渲染**让 AI 回复的代码有高亮、表格有边框、标题有层级——终端也能有接近 IDE 的阅读体验。
 
 > **TUI = EventBus + Ink/React + Markdown + ToolCallBox。事件总线解耦逻辑和渲染，React 组件化管理终端界面，Markdown 渲染提升可读性，工具调用卡片化提升可观测性。结果：Agent 从"能用"升级到"好用"。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：Agent Skill](./08-agent-skill.md) | ➡️ [下一章：流式输出](./10-streaming.md)

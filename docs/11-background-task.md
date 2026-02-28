@@ -1,10 +1,9 @@
-# 第 11 阶段：后台任务管理 (Background Task)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：流式输出与并行工具调用](./10-streaming.md) | ➡️ [返回目录](../README.md)
-
 ---
+title: 后台任务
+nav_order: 16
+---
+
+# 第 11 阶段：后台任务管理 (Background Task)
 
 **Branch:** `11-background-task`
 
@@ -844,9 +843,3 @@ src/
 后台任务管理的核心是**统一抽象 + 事件驱动**。`BackgroundTaskManager` 通过两个方法（`startTask` / `startPromiseTask`）将 Shell 子进程和 Sub-Agent Promise 统一为同一套 `BackgroundTaskInfo` 接口和 `task_started` / `task_complete` 事件。下游消费者不需要关心任务是进程还是 Promise——**Chat 层**根据 `type` 字段格式化后注入对话历史，**TUI 层**根据 `type` 字段展示不同的标签和信息。通知机制区分模型忙碌/空闲状态避免并发问题，退出时 `killAll()` 确保不留孤儿进程。
 
 > **后台任务 = 统一异步抽象（spawn + Promise）+ EventEmitter 生命周期通知 + 双层消费（Chat 注入历史 / TUI 实时展示）。Shell 和 Sub-Agent 共享同一条事件管道，对话不中断，结果自动汇合。从"干等任务"到"边聊边跑"，Agent 学会了真正的多任务并行。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：流式输出与并行工具调用](./10-streaming.md) | ➡️ [返回目录](../README.md)

@@ -1,10 +1,9 @@
-# 第 7 阶段：Sub-Agent 模式 (子智能体)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：MCP 协议](./06-mcp.md) | ➡️ [下一章：Agent Skill](./08-agent-skill.md)
-
 ---
+title: Sub-Agent
+nav_order: 12
+---
+
+# 第 7 阶段：Sub-Agent 模式 (子智能体)
 
 **Branch:** `07-sub-agent`
 
@@ -290,9 +289,3 @@ LLM 调用 sub_agent 工具
 ```
 
 > **Sub-Agent = 团队协作模式。主 Agent 是 Tech Lead，子 Agent 是专才工程师。各干各的，最后汇总。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：MCP 协议](./06-mcp.md) | ➡️ [下一章：Agent Skill](./08-agent-skill.md)

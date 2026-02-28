@@ -1,10 +1,9 @@
-# 第 8 阶段：Agent Skill (技能)
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：Sub-Agent](./07-sub-agent.md) | ➡️ [下一章：TUI 交互界面](./09-tui.md)
-
 ---
+title: Agent Skill
+nav_order: 13
+---
+
+# 第 8 阶段：Agent Skill (技能)
 
 **Branch:** `08-skills`
 
@@ -298,9 +297,3 @@ Registered Skills (2):
 Skill 本质上是**把专家经验固化成 Markdown 文件**。一个好的 Skill 库，能让 Agent 从"什么都能做但需要你教"变成"常见任务一键搞定"。与 Sub-Agent 相比，Skill 更轻量——不派生新的对话，而是在主 Agent 上下文中直接执行。
 
 > **Agent Skill = Markdown 定义的自动化流程。用 YAML frontmatter 声明元数据，用 Markdown 正文编写 prompt，通过斜杠命令或 LLM 工具调用触发，注入主对话上下文执行。**
-
----
-
-> **导航**：首页 » 进阶架构
->
-> ⬅️ [上一章：Sub-Agent](./07-sub-agent.md) | ➡️ [下一章：TUI 交互界面](./09-tui.md)
