@@ -5,6 +5,7 @@ import type { SubAgentRegistry } from "../subagents/sub-agent-registry.js";
 import type { SkillRegistry } from "../skills/skill-registry.js";
 import type { SkillLoader } from "../skills/skill-loader.js";
 import type { ChatEventBus } from "../chat-events.js";
+import type { BackgroundTaskManager } from "../background-task-manager.js";
 import type { SlashCommandRegistry } from "./slash-commands.js";
 
 export type MessageType =
@@ -52,5 +53,6 @@ export interface AppContext {
   skillLoader: SkillLoader;
   systemPrompt: string;
   events: ChatEventBus;
+  bgManager: BackgroundTaskManager;
   commands: SlashCommandRegistry;
 }

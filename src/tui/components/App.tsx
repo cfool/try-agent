@@ -7,6 +7,7 @@ import { WelcomeBox } from "./WelcomeBox.js";
 import { AgentsPanel } from "./AgentsPanel.js";
 import { SkillsPanel } from "./SkillsPanel.js";
 import { ModelsPanel } from "./ModelsPanel.js";
+import { BackgroundTaskBar } from "./BackgroundTaskBar.js";
 import { useChat } from "../use-chat.js";
 import type { AppContext } from "../types.js";
 
@@ -15,7 +16,7 @@ interface AppProps {
 }
 
 export const App: React.FC<AppProps> = ({ ctx }) => {
-  const { messages, loading, modelName, sendMessage, newChat, switchModel, addSystemMessage } =
+  const { messages, loading, modelName, backgroundTasks, sendMessage, newChat, switchModel, addSystemMessage } =
     useChat(ctx);
   const [input, setInput] = useState("");
   /** Which panel is currently open, or null for the normal input box */
@@ -33,7 +34,7 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
     commands.register({
       name: "/exit",
       description: "Quit the application",
-      handler: () => { ctx.mcpManager.close().then(() => app.exit()); },
+      handler: () => { ctx.bgManager.killAll(); ctx.mcpManager.close().then(() => app.exit()); },
     });
 
     commands.register({
@@ -145,8 +146,9 @@ export const App: React.FC<AppProps> = ({ ctx }) => {
     <Box flexDirection="column" height="100%">
       <WelcomeBox />
       <MessageList messages={messages} />
+      <BackgroundTaskBar tasks={backgroundTasks} />
       {renderMiddle()}
-      <StatusBar modelName={modelName} loading={loading} />
+      <StatusBar modelName={modelName} loading={loading} backgroundTaskCount={backgroundTasks.length} />
     </Box>
   );
 };

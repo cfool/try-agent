@@ -5,12 +5,15 @@ import { ToolRegistry, ToolDefinition } from "./tools/tool-registry.js";
 import { getProjectContext, formatProjectContext } from "./project-context.js";
 import { ChatCompressService, CompressionStatus } from "./context/chat-compress-service.js";
 import type { ChatEventBus } from "./chat-events.js";
+import type { BackgroundTaskManager, BackgroundTaskInfo } from "./background-task-manager.js";
 
 export interface ChatOptions {
   /** 最大工具调用轮数（默认 100） */
   maxRounds?: number;
   /** 事件总线，用于向 TUI 发送 tool_call / tool_result 事件 */
   events: ChatEventBus;
+  /** 后台任务管理器（可选） */
+  bgManager?: BackgroundTaskManager;
 }
 
 export class Chat {
@@ -21,6 +24,8 @@ export class Chat {
   private compressService: ChatCompressService;
   private maxRounds: number;
   private events: ChatEventBus;
+  private bgManager?: BackgroundTaskManager;
+  private pendingBgResults: BackgroundTaskInfo[] = [];
 
   constructor(
     client: ModelClient,
@@ -32,8 +37,15 @@ export class Chat {
     this.systemPrompt = systemPrompt;
     this.toolRegistry = toolRegistry;
     this.events = options.events;
+    this.bgManager = options.bgManager;
     this.compressService = new ChatCompressService(client, this.events);
     this.maxRounds = options.maxRounds ?? 100;
+
+    if (this.bgManager) {
+      this.bgManager.on("task_complete", (info) => {
+        this.pendingBgResults.push(info);
+      });
+    }
   }
 
   /**
@@ -49,7 +61,43 @@ export class Chat {
     ];
   }
 
+  /**
+   * Drain completed background task results into history so the model
+   * can see them on the next turn.
+   */
+  private drainPendingBackgroundResults(): void {
+    if (this.pendingBgResults.length === 0) return;
+
+    const results = this.pendingBgResults.splice(0);
+    for (const task of results) {
+      const elapsed = Math.round(
+        ((task.completedAt ?? Date.now()) - task.startedAt) / 1000
+      );
+      const summary = [
+        `[Background task ${task.taskId} ${task.status}]`,
+        `$ ${task.command}`,
+        `Exit code: ${task.exitCode ?? "N/A"}`,
+        `Elapsed: ${elapsed}s`,
+      ];
+      if (task.stdout) summary.push(`stdout:\n${task.stdout.trimEnd()}`);
+      if (task.stderr) summary.push(`stderr:\n${task.stderr.trimEnd()}`);
+
+      const text = summary.join("\n");
+      this.history.push({
+        role: "user",
+        parts: [{ text: `[System] Background task completed:\n${text}` }],
+      });
+      this.history.push({
+        role: "model",
+        parts: [{ text: `Acknowledged background task ${task.taskId} result.` }],
+      });
+    }
+  }
+
   async send(text: string): Promise<string> {
+    // Inject any completed background task results into history
+    this.drainPendingBackgroundResults();
+
     // 压缩检测：超出阈值时替换 history
     const compression = await this.compressService.compressIfNeeded(this.history);
     if (compression.status === CompressionStatus.COMPRESSED && compression.newHistory) {
@@ -61,6 +109,9 @@ export class Chat {
     const tools = this.getToolDeclarations();
 
     for (let i = 0; i < this.maxRounds; i++) {
+      // Drain any background results that arrived during tool execution
+      this.drainPendingBackgroundResults();
+
       const messages = this.buildMessages();
 
       // 使用流式接口调用模型

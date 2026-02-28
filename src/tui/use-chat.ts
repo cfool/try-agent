@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Chat } from "../chat.js";
-import type { ToolCallEvent, ToolResultEvent } from "../chat-events.js";
+import type { ToolCallEvent, ToolResultEvent, BackgroundTaskEvent } from "../chat-events.js";
+import type { BackgroundTaskInfo } from "../background-task-manager.js";
 import type { AppContext, DisplayMessage, MessageType, ToolCallData, ToolResultData } from "./types.js";
 
 interface UseChatReturn {
   messages: DisplayMessage[];
   loading: boolean;
   modelName: string;
+  backgroundTasks: BackgroundTaskInfo[];
   sendMessage: (text: string) => void;
   newChat: () => void;
   switchModel: (model: string) => void;
@@ -15,9 +17,28 @@ interface UseChatReturn {
 
 let nextId = 1;
 
+/**
+ * Format a completed BackgroundTaskInfo into a text summary for the model.
+ */
+function formatBgTaskResult(task: BackgroundTaskInfo): string {
+  const elapsed = Math.round(
+    ((task.completedAt ?? Date.now()) - task.startedAt) / 1000
+  );
+  const lines = [
+    `[Background task ${task.taskId} ${task.status}]`,
+    `$ ${task.command}`,
+    `Exit code: ${task.exitCode ?? "N/A"}`,
+    `Elapsed: ${elapsed}s`,
+  ];
+  if (task.stdout) lines.push(`stdout:\n${task.stdout.trimEnd()}`);
+  if (task.stderr) lines.push(`stderr:\n${task.stderr.trimEnd()}`);
+  return lines.join("\n");
+}
+
 export function useChat(ctx: AppContext): UseChatReturn {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [backgroundTasks, setBackgroundTasks] = useState<BackgroundTaskInfo[]>([]);
   const [modelName, setModelName] = useState(
     () => ctx.client.getActiveModel()?.alias || ctx.client.getActiveModel()?.name || "unknown"
   );
@@ -25,8 +46,14 @@ export function useChat(ctx: AppContext): UseChatReturn {
   const chatRef = useRef<Chat>(
     new Chat(ctx.client, ctx.systemPrompt, ctx.registry, {
       events: ctx.events,
+      bgManager: ctx.bgManager,
     })
   );
+
+  // Track loading state in a ref so event callbacks always see the latest value
+  const loadingRef = useRef(false);
+  // Queue of completed bg tasks that arrived while the model was busy
+  const pendingNotifyRef = useRef<BackgroundTaskInfo[]>([]);
 
   const addMessage = useCallback(
     (type: MessageType, text: string, extra?: { toolCall?: ToolCallData; toolResult?: ToolResultData }) => {
@@ -40,6 +67,48 @@ export function useChat(ctx: AppContext): UseChatReturn {
 
   // 用于追踪当前正在流式输出的 assistant 消息 id
   const streamingIdRef = useRef<number | null>(null);
+
+  /**
+   * Internally send a message to the model (sets loading state, calls chat.send).
+   * This is extracted so it can be called both by user input and by bg-task notifications.
+   */
+  const doSend = useCallback(
+    (text: string, displayType: MessageType = "user") => {
+      addMessage(displayType, text);
+      setLoading(true);
+      loadingRef.current = true;
+      streamingIdRef.current = null;
+
+      chatRef.current
+        .send(text)
+        .then(() => {
+          streamingIdRef.current = null;
+        })
+        .catch((err) => {
+          addMessage("error", String(err));
+        })
+        .finally(() => {
+          setLoading(false);
+          loadingRef.current = false;
+          // After finishing a turn, check if any bg tasks completed while we were busy
+          drainPendingNotifications();
+        });
+    },
+    [addMessage] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  /**
+   * If the model is idle and there are pending completed bg tasks,
+   * send a notification turn to the model so it can react.
+   */
+  const drainPendingNotifications = useCallback(() => {
+    if (loadingRef.current) return;
+    const pending = pendingNotifyRef.current.splice(0);
+    if (pending.length === 0) return;
+
+    const text = pending.map(formatBgTaskResult).join("\n\n");
+    doSend(`[System] Background task(s) completed:\n${text}`, "system");
+  }, [doSend]);
 
   useEffect(() => {
     const events = ctx.events;
@@ -78,44 +147,59 @@ export function useChat(ctx: AppContext): UseChatReturn {
       }
     };
 
+    const onBgTaskStarted = (e: BackgroundTaskEvent) => {
+      setBackgroundTasks((prev) => [...prev, e.task]);
+    };
+    const onBgTaskComplete = (e: BackgroundTaskEvent) => {
+      // Update the task in the bar
+      setBackgroundTasks((prev) =>
+        prev.map((t) => (t.taskId === e.task.taskId ? e.task : t))
+      );
+
+      // Auto-remove completed tasks from the bar after 5 seconds
+      setTimeout(() => {
+        setBackgroundTasks((prev) => prev.filter((t) => t.taskId !== e.task.taskId));
+      }, 5000);
+
+      // Notify the model about the completed task
+      if (loadingRef.current) {
+        // Model is busy — queue the notification for when the current turn ends
+        pendingNotifyRef.current.push(e.task);
+      } else {
+        // Model is idle — send a notification turn immediately
+        const text = formatBgTaskResult(e.task);
+        doSend(`[System] Background task completed:\n${text}`, "system");
+      }
+    };
+
     events.on("tool_call", onToolCall);
     events.on("tool_result", onToolResult);
     events.on("compressed", onCompressed);
     events.on("text_delta", onTextDelta);
+    events.on("background_task_started", onBgTaskStarted);
+    events.on("background_task_complete", onBgTaskComplete);
 
     return () => {
       events.off("tool_call", onToolCall);
       events.off("tool_result", onToolResult);
       events.off("compressed", onCompressed);
       events.off("text_delta", onTextDelta);
+      events.off("background_task_started", onBgTaskStarted);
+      events.off("background_task_complete", onBgTaskComplete);
     };
-  }, [ctx.events, addMessage]);
+  }, [ctx.events, addMessage, doSend]);
 
   const sendMessage = useCallback(
     (text: string) => {
-      addMessage("user", text);
-      setLoading(true);
-      streamingIdRef.current = null;
-
-      chatRef.current
-        .send(text)
-        .then(() => {
-          // 流式输出已通过 text_delta 事件实时添加到消息列表，无需再手动添加
-          streamingIdRef.current = null;
-        })
-        .catch((err) => {
-          addMessage("error", String(err));
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+      doSend(text, "user");
     },
-    [addMessage]
+    [doSend]
   );
 
   const newChat = useCallback(() => {
     chatRef.current = new Chat(ctx.client, ctx.systemPrompt, ctx.registry, {
       events: ctx.events,
+      bgManager: ctx.bgManager,
     });
     setMessages([]);
     addMessage("system", "--- New chat started ---");
@@ -147,6 +231,7 @@ export function useChat(ctx: AppContext): UseChatReturn {
     messages,
     loading,
     modelName,
+    backgroundTasks,
     sendMessage,
     newChat,
     switchModel,

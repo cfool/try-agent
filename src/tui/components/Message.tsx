@@ -78,12 +78,15 @@ export const Message: React.FC<MessageProps> = ({ message, isPending = false }) 
         </Box>
       );
 
-    case "system":
+    case "system": {
+      const firstLine = message.text.split("\n")[0];
+      const truncated = message.text.includes("\n") ? firstLine + "…" : firstLine;
       return (
-        <Box>
-          <Text color="gray">{message.text}</Text>
+        <Box borderStyle="round" borderColor="gray" paddingLeft={1} paddingRight={1}>
+          <Text color="gray">ℹ {truncated}</Text>
         </Box>
       );
+    }
 
     default:
       return <Text>{message.text}</Text>;

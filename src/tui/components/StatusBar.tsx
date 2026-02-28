@@ -4,9 +4,10 @@ import { Box, Text } from "ink";
 interface StatusBarProps {
   modelName: string;
   loading: boolean;
+  backgroundTaskCount?: number;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ modelName, loading }) => {
+export const StatusBar: React.FC<StatusBarProps> = ({ modelName, loading, backgroundTaskCount }) => {
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -44,6 +45,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({ modelName, loading }) => {
             {elapsed >= 60
               ? `${Math.floor(elapsed / 60)}m${elapsed % 60}s`
               : `${elapsed}s`}
+          </Text>
+        </>
+      )}
+      {(backgroundTaskCount ?? 0) > 0 && (
+        <>
+          <Text> </Text>
+          <Text color="magenta">
+            [{backgroundTaskCount} background task{backgroundTaskCount! > 1 ? "s" : ""}]
           </Text>
         </>
       )}

@@ -47,7 +47,11 @@ function getTitle(toolCall: ToolCallData): string {
     }
     case "run_shell_command": {
       const cmd = rawArgs?.command ?? args;
-      return `Shell  $ ${cmd}`;
+      const desc = rawArgs?.description as string | undefined;
+      const bgSuffix = rawArgs?.run_in_background ? " (background)" : "";
+      return desc
+        ? `${desc}${bgSuffix}  $ ${cmd}`
+        : `Shell${bgSuffix}  $ ${cmd}`;
     }
     case "read_file": {
       const filePath = rawArgs?.file_path ?? args;

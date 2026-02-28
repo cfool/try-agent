@@ -7,6 +7,7 @@ import { ReadFile } from "../tools/read-file.js";
 import { ReadFolder } from "../tools/read-folder.js";
 import { WriteFile } from "../tools/write-file.js";
 import { EditFile } from "../tools/edit-file.js";
+import { GetTaskOutput } from "../tools/get-task-output.js";
 import { McpClientManager } from "../mcp-client.js";
 import { SubAgentRegistry } from "../subagents/sub-agent-registry.js";
 import { SubAgentTool } from "../tools/sub-agent-tool.js";
@@ -15,6 +16,7 @@ import { SkillRegistry } from "../skills/skill-registry.js";
 import { SkillLoader } from "../skills/skill-loader.js";
 import { SkillTool } from "../tools/skill-tool.js";
 import { ChatEventBus } from "../chat-events.js";
+import { BackgroundTaskManager } from "../background-task-manager.js";
 import { SlashCommandRegistry } from "./slash-commands.js";
 import { App } from "./components/App.js";
 import type { AppContext } from "./types.js";
@@ -41,18 +43,29 @@ export async function startApp(options: StartAppOptions = {}): Promise<void> {
     process.exit(1);
   }
 
+  const bgManager = new BackgroundTaskManager();
+
   const registry = new ToolRegistry();
-  registry.register(new RunShellCommand({ timeoutMs: 30_000 }));
+  registry.register(new RunShellCommand({ timeoutMs: 30_000, bgManager }));
   registry.register(new ReadFile());
   registry.register(new ReadFolder());
   registry.register(new WriteFile());
   registry.register(new EditFile());
+  registry.register(new GetTaskOutput(bgManager));
 
   const mcpManager = new McpClientManager();
   await mcpManager.connect();
   mcpManager.registerTools(registry);
 
   const events = new ChatEventBus();
+
+  // Bridge bgManager events to ChatEventBus
+  bgManager.on("task_started", (task) => {
+    events.emit("background_task_started", { task });
+  });
+  bgManager.on("task_complete", (task) => {
+    events.emit("background_task_complete", { task });
+  });
 
   const subAgentRegistry = new SubAgentRegistry();
   subAgentRegistry.registerBuiltin(createCodebaseInvestigator());
@@ -87,8 +100,23 @@ export async function startApp(options: StartAppOptions = {}): Promise<void> {
     skillLoader,
     systemPrompt,
     events,
+    bgManager,
     commands,
   };
+
+  // Kill all background tasks on exit
+  const cleanup = () => {
+    bgManager.killAll();
+  };
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanup();
+    process.exit(0);
+  });
 
   render(<App ctx={ctx} />);
 }
